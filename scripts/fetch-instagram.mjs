@@ -10,14 +10,14 @@ const dataDir = path.join(repoRoot, 'data');
 
 const apiVersion = process.env.GRAPH_API_VERSION || 'v22.0';
 const graphBase = `https://graph.facebook.com/${apiVersion}`;
-const igUserId = process.env.IG_USER_ID;
+const igUserId = process.env.IG_AUTH_USER_ID;
 const accessToken = process.env.IG_ACCESS_TOKEN;
+const targetUsername = process.env.TARGET_IG_USERNAME;
 const postsLimit = Number(process.env.IG_POSTS_LIMIT || 12);
-const storiesLimit = Number(process.env.IG_STORIES_LIMIT || 10);
-const profileUrl = process.env.IG_PROFILE_URL || 'https://www.instagram.com/safescapefoundation/';
+const profileUrl = process.env.IG_PROFILE_URL || (targetUsername ? `https://www.instagram.com/${targetUsername}/` : 'https://www.instagram.com/');
 
-if (!igUserId || !accessToken) {
-  throw new Error('Missing IG_USER_ID or IG_ACCESS_TOKEN environment variables.');
+if (!igUserId || !accessToken || !targetUsername) {
+  throw new Error('Missing IG_AUTH_USER_ID, IG_ACCESS_TOKEN, or TARGET_IG_USERNAME environment variables.');
 }
 
 function withToken(url) {
@@ -56,29 +56,16 @@ function normalizeMedia(item) {
 }
 
 async function fetchPosts() {
-  const url = withToken(new URL(`${graphBase}/${igUserId}/media`));
-  url.searchParams.set(
-    'fields',
-    ['id', 'caption', 'media_type', 'media_url', 'thumbnail_url', 'permalink', 'timestamp'].join(',')
+  const url = withToken(new URL(`${graphBase}/${igUserId}`));
+  url.searchParams.set('fields',
+    `business_discovery.username(${targetUsername}){username,name,profile_picture_url,media.limit(${postsLimit}){id,caption,media_type,media_url,thumbnail_url,permalink,timestamp}}`
   );
-  url.searchParams.set('limit', String(postsLimit));
-
   const payload = await fetchJson(url);
-  const posts = Array.isArray(payload.data) ? payload.data.map(normalizeMedia).filter((item) => item.media_url) : [];
+  const discoveredMedia = payload?.business_discovery?.media?.data;
+  const posts = Array.isArray(discoveredMedia)
+    ? discoveredMedia.map(normalizeMedia).filter((item) => item.media_url)
+    : [];
   return sortByTimestampDesc(posts);
-}
-
-async function fetchStories() {
-  const url = withToken(new URL(`${graphBase}/${igUserId}/stories`));
-  url.searchParams.set(
-    'fields',
-    ['id', 'caption', 'media_type', 'media_url', 'thumbnail_url', 'permalink', 'timestamp'].join(',')
-  );
-  url.searchParams.set('limit', String(storiesLimit));
-
-  const payload = await fetchJson(url);
-  const stories = Array.isArray(payload.data) ? payload.data.map(normalizeMedia).filter((item) => item.media_url) : [];
-  return sortByTimestampDesc(stories);
 }
 
 async function writeDataFile(fileName, payload) {
@@ -89,19 +76,10 @@ async function writeDataFile(fileName, payload) {
 
 async function main() {
   const posts = await fetchPosts();
-  let stories = [];
-
-  try {
-    stories = await fetchStories();
-  } catch (error) {
-    console.warn('Story sync failed, continuing with posts only.');
-    console.warn(error);
-  }
 
   await writeDataFile('instagram-posts.json', { data: posts, syncedAt: new Date().toISOString() });
-  await writeDataFile('instagram-stories.json', { data: stories, syncedAt: new Date().toISOString() });
 
-  console.log(`Synced ${posts.length} posts and ${stories.length} stories.`);
+  console.log(`Synced ${posts.length} posts from @${targetUsername}.`);
 }
 
 main().catch((error) => {

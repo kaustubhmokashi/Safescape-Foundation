@@ -93,9 +93,9 @@ window.SAFESCAPE_SITE_DATA = {
   ],
   forms: {
     adoption: {
-      title: "Adoption Inquiry",
+      title: "Apply for Adoption",
       description: "Tell Safescape about yourself and the buddy you hope to bring home.",
-      submitLabel: "Send adoption inquiry",
+      submitLabel: "Submit adoption application",
       fields: [
         { name: "fullName", label: "Full name", type: "text", required: true },
         { name: "email", label: "Email address", type: "email", required: true },
@@ -127,9 +127,9 @@ window.SAFESCAPE_SITE_DATA = {
       ]
     },
     volunteer: {
-      title: "Volunteer Form",
+      title: "Become a Volunteer",
       description: "Let Safescape know how you want to help and what time you can commit.",
-      submitLabel: "Send volunteer form",
+      submitLabel: "Submit volunteer application",
       fields: [
         { name: "fullName", label: "Full name", type: "text", required: true },
         { name: "email", label: "Email address", type: "email", required: true },
@@ -153,9 +153,9 @@ window.SAFESCAPE_SITE_DATA = {
       ]
     },
     foster: {
-      title: "Foster Form",
+      title: "Sign up as foster",
       description: "Share your home setup and the kind of foster support you can offer.",
-      submitLabel: "Send foster form",
+      submitLabel: "Submit foster application",
       fields: [
         { name: "fullName", label: "Full name", type: "text", required: true },
         { name: "email", label: "Email address", type: "email", required: true },
@@ -186,9 +186,9 @@ window.SAFESCAPE_SITE_DATA = {
       ]
     },
     surrender: {
-      title: "Surrender Form",
+      title: "Application to Surrender",
       description: "Share the pet details so Safescape can review the request responsibly.",
-      submitLabel: "Send surrender request",
+      submitLabel: "Submit surrender application",
       fields: [
         { name: "fullName", label: "Your full name", type: "text", required: true },
         { name: "email", label: "Email address", type: "email", required: true },

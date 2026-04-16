@@ -1,4 +1,4 @@
-name: Sync Instagram Feed
+name: Sync Instagram Posts
 
 on:
   workflow_dispatch:
@@ -24,21 +24,21 @@ jobs:
       - name: Fetch Instagram posts and stories
         env:
           GRAPH_API_VERSION: v22.0
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_AUTH_USER_ID: ${{ secrets.IG_AUTH_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          IG_PROFILE_URL: https://www.instagram.com/safescapefoundation/
+          TARGET_IG_USERNAME: ${{ secrets.TARGET_IG_USERNAME }}
+          IG_PROFILE_URL: https://www.instagram.com/${{ secrets.TARGET_IG_USERNAME }}/
           IG_POSTS_LIMIT: '12'
-          IG_STORIES_LIMIT: '10'
         run: node scripts/fetch-instagram.mjs
 
       - name: Commit refreshed feed data
         run: |
-          if git diff --quiet data/instagram-posts.json data/instagram-stories.json; then
-            echo "No Instagram feed changes to commit."
+          if git diff --quiet data/instagram-posts.json; then
+            echo "No Instagram post changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/instagram-posts.json data/instagram-stories.json
-          git commit -m "chore: refresh instagram feed"
+          git add data/instagram-posts.json
+          git commit -m "chore: refresh instagram posts"
           git push
