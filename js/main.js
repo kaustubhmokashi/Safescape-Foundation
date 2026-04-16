@@ -1821,6 +1821,9 @@
       return { x: vector.x / length, y: vector.y / length };
     };
 
+    const lerp = (start, end, amount) => start + (end - start) * amount;
+    const easeOutCubic = (value) => 1 - Math.pow(1 - clamp(value, 0, 1), 3);
+
     const createFootprintStamp = (kind, x, y, angle, scale, wobble = 0) => {
       const stamp = document.createElement("div");
       stamp.className = `footprint-stamp footprint-stamp--${kind}`;
@@ -1865,7 +1868,6 @@
       const normal = normalize({ x: -delta.y, y: delta.x });
       const bend = rand(distance * 0.14, distance * 0.3) * (Math.random() < 0.5 ? -1 : 1);
       const sway = rand(distance * 0.04, distance * 0.14) * (Math.random() < 0.5 ? -1 : 1);
-
       return {
         p0: start,
         p1: {
@@ -1884,17 +1886,19 @@
           x: start.x + delta.x * 0.72 - normal.x * bend,
           y: start.y + delta.y * 0.72 - normal.y * bend + sway
         }, end),
-        stepInterval: rand(200, 280),
+        stepInterval: rand(300, 420),
         sideOffset: 8,
         dogBehindOffset: 72,
-        dogRightOffset: 16,
+        dogRightOffset: 20,
         dogWanderVector: normalize({ x: rand(-1, 1), y: rand(-1, 1) }),
-        dogWanderAmplitude: rand(6, 12),
-        dogWanderPhase: rand(0, Math.PI * 2),
-        dogWanderFrequency: rand(1.35, 2.4),
-        dogChaosChance: rand(0.12, 0.28),
-        dogChaosUntil: 0,
-        dogChaosNextAt: rand(2200, 6200),
+        dogTrailCurveStrength: rand(10, 16),
+        dogTrailCurvePhase: rand(0, Math.PI * 2),
+        dogTrailCurveFrequency: rand(0.24, 0.42),
+        dogWaitAt: rand(2400, 6200),
+        dogWaitUntil: 0,
+        dogWaitAnchor: null,
+        dogWaitRefreshAt: 0,
+        dogRunUntil: 0,
         scale: rand(0.44, 0.68),
         pawScale: rand(0.32, 0.48)
       };
@@ -1905,6 +1909,7 @@
       const humanPoint = cubicPoint(tHuman, walker.p0, walker.p1, walker.p2, walker.p3);
       const humanTangent = normalize(cubicTangent(tHuman, walker.p0, walker.p1, walker.p2, walker.p3));
       const humanNormal = normalize({ x: -humanTangent.y, y: humanTangent.x });
+      const dogPerp = humanNormal;
       const side = index % 2 === 0 ? -1 : 1;
       const humanOffset = walker.sideOffset * side;
       const humanAngle = (Math.atan2(humanTangent.y, humanTangent.x) * 180) / Math.PI + 90;
@@ -1918,53 +1923,95 @@
         rand(-7, 7)
       );
 
-      const dogRight = normalize({ x: humanTangent.y, y: -humanTangent.x });
-      const chaosActive = now < walker.dogChaosUntil;
-
-      if (!chaosActive && now >= walker.dogChaosNextAt && Math.random() < walker.dogChaosChance) {
-        walker.dogChaosUntil = now + 2000;
-      }
-
-      if (walker.dogChaosUntil && now >= walker.dogChaosUntil) {
-        walker.dogChaosNextAt = now + rand(3200, 7600);
-        walker.dogChaosUntil = 0;
-      }
-
-      const dogWander =
-        Math.sin(progress * Math.PI * walker.dogWanderFrequency + walker.dogWanderPhase) *
-        walker.dogWanderAmplitude;
-      const dogChaosDrift = now < walker.dogChaosUntil ? Math.sin(progress * Math.PI * 5 + walker.dogWanderPhase) * 44 : 0;
-      const chaosVector = now < walker.dogChaosUntil ? normalize({ x: -walker.dogWanderVector.y, y: walker.dogWanderVector.x }) : null;
-      const dogHeading = normalize({
-        x: humanTangent.x * 0.82 + walker.dogWanderVector.x * 0.18,
-        y: humanTangent.y * 0.82 + walker.dogWanderVector.y * 0.18
-      });
-
-      const dogTarget = {
+      const followAngle = (Math.atan2(humanTangent.y, humanTangent.x) * 180) / Math.PI + 90;
+      const dogNormal = humanNormal;
+      const dogTrailCurve =
+        Math.sin(progress * Math.PI * walker.dogTrailCurveFrequency + walker.dogTrailCurvePhase) * walker.dogTrailCurveStrength;
+      const dogTrailWander =
+        Math.cos(progress * Math.PI * walker.dogTrailCurveFrequency * 1.22 + walker.dogTrailCurvePhase * 0.61) *
+        walker.dogTrailCurveStrength *
+        0.34;
+      const normalDogTarget = {
         x:
           humanPoint.x -
           humanTangent.x * walker.dogBehindOffset +
-          dogRight.x * walker.dogRightOffset +
-          walker.dogWanderVector.x * dogWander +
-          (chaosVector ? chaosVector.x * dogChaosDrift : 0),
+          dogNormal.x * walker.dogRightOffset +
+          dogNormal.x * (dogTrailCurve + dogTrailWander) +
+          dogPerp.x * Math.sin(progress * Math.PI * 0.6 + walker.dogTrailCurvePhase * 0.52) * 4 +
+          walker.dogWanderVector.x * 1.4,
         y:
           humanPoint.y -
           humanTangent.y * walker.dogBehindOffset +
-          dogRight.y * walker.dogRightOffset +
-          walker.dogWanderVector.y * dogWander +
-          (chaosVector ? chaosVector.y * dogChaosDrift : 0)
+          dogNormal.y * walker.dogRightOffset +
+          dogNormal.y * (dogTrailCurve + dogTrailWander) +
+          dogPerp.y * Math.sin(progress * Math.PI * 0.6 + walker.dogTrailCurvePhase * 0.52) * 4 +
+          walker.dogWanderVector.y * 1.4
+      };
+
+      const stampWaitPaws = (anchorX, anchorY, angleBase, spread = 14) => {
+        const waitSpread = spread * 0.5;
+        createFootprintStamp(
+          "paw",
+          anchorX - dogPerp.x * waitSpread,
+          anchorY - dogPerp.y * waitSpread,
+          angleBase + rand(-6, 6),
+          walker.pawScale,
+          rand(-5, 5)
+        );
+        createFootprintStamp(
+          "paw",
+          anchorX + dogPerp.x * waitSpread,
+          anchorY + dogPerp.y * waitSpread,
+          angleBase + rand(-6, 6),
+          walker.pawScale,
+          rand(-5, 5)
+        );
+      };
+
+      if (!walker.dogWaitUntil && now >= walker.dogWaitAt) {
+        walker.dogWaitUntil = now + rand(2000, 5000);
+        walker.dogRunUntil = walker.dogWaitUntil + rand(1200, 1700);
+        walker.dogWaitRefreshAt = now;
+        walker.dogWaitAnchor = normalDogTarget;
+        walker.dogWaitAt = walker.dogRunUntil + rand(4200, 8200);
+
+        stampWaitPaws(normalDogTarget.x, normalDogTarget.y, followAngle, 18);
+        return;
+      }
+
+      if (now < walker.dogWaitUntil && walker.dogWaitAnchor) {
+        if (now >= walker.dogWaitRefreshAt) {
+          walker.dogWaitRefreshAt = now + 1100;
+          stampWaitPaws(
+            walker.dogWaitAnchor.x,
+            walker.dogWaitAnchor.y,
+            followAngle,
+            18
+          );
+        }
+        return;
+      }
+
+      const chaseBlend = walker.dogRunUntil && now < walker.dogRunUntil ? easeOutCubic((walker.dogRunUntil - now) / (walker.dogRunUntil - walker.dogWaitUntil)) : 0;
+      const runBoost = walker.dogRunUntil && now < walker.dogRunUntil ? lerp(0.65, 0.2, chaseBlend) : 1;
+
+      if (walker.dogRunUntil && now >= walker.dogRunUntil) {
+        walker.dogWaitUntil = 0;
+        walker.dogRunUntil = 0;
+        walker.dogWaitAnchor = null;
+        walker.dogWaitRefreshAt = 0;
+      }
+
+      const dogTarget = {
+        x: lerp(walker.dogWaitAnchor ? walker.dogWaitAnchor.x : normalDogTarget.x, normalDogTarget.x, walker.dogRunUntil && now < walker.dogRunUntil ? 1 - chaseBlend : 1),
+        y: lerp(walker.dogWaitAnchor ? walker.dogWaitAnchor.y : normalDogTarget.y, normalDogTarget.y, walker.dogRunUntil && now < walker.dogRunUntil ? 1 - chaseBlend : 1)
       };
 
       createFootprintStamp(
         "paw",
         dogTarget.x,
         dogTarget.y,
-        (Math.atan2(
-          now < walker.dogChaosUntil ? (dogHeading.y + (chaosVector ? chaosVector.y * 0.35 : 0)) : dogHeading.y,
-          now < walker.dogChaosUntil ? (dogHeading.x + (chaosVector ? chaosVector.x * 0.35 : 0)) : dogHeading.x
-        ) * 180) /
-          Math.PI +
-          90,
+        (Math.atan2(humanTangent.y, humanTangent.x) * 180) / Math.PI + 90 + rand(-8, 8),
         walker.pawScale,
         rand(-5, 5)
       );
@@ -2006,7 +2053,7 @@
         launchWalker();
       }
 
-      window.setTimeout(scheduleNext, rand(2600, 5600));
+      window.setTimeout(scheduleNext, rand(3900, 8400));
     };
 
     const syncLayerHeight = () => {
