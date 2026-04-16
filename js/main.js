@@ -1888,12 +1888,19 @@
         sideOffset: 8,
         dogBehindOffset: 72,
         dogRightOffset: 16,
+        dogWanderVector: normalize({ x: rand(-1, 1), y: rand(-1, 1) }),
+        dogWanderAmplitude: rand(6, 12),
+        dogWanderPhase: rand(0, Math.PI * 2),
+        dogWanderFrequency: rand(1.35, 2.4),
+        dogChaosChance: rand(0.12, 0.28),
+        dogChaosUntil: 0,
+        dogChaosNextAt: rand(2200, 6200),
         scale: rand(0.44, 0.68),
         pawScale: rand(0.32, 0.48)
       };
     };
 
-    const placeWalkerStep = (walker, progress, index) => {
+    const placeWalkerStep = (walker, progress, index, now) => {
       const tHuman = clamp(progress, 0, 1);
       const humanPoint = cubicPoint(tHuman, walker.p0, walker.p1, walker.p2, walker.p3);
       const humanTangent = normalize(cubicTangent(tHuman, walker.p0, walker.p1, walker.p2, walker.p3));
@@ -1912,13 +1919,52 @@
       );
 
       const dogRight = normalize({ x: humanTangent.y, y: -humanTangent.x });
-      const dogAngle = (Math.atan2(humanTangent.y, humanTangent.x) * 180) / Math.PI + 90;
+      const chaosActive = now < walker.dogChaosUntil;
+
+      if (!chaosActive && now >= walker.dogChaosNextAt && Math.random() < walker.dogChaosChance) {
+        walker.dogChaosUntil = now + 2000;
+      }
+
+      if (walker.dogChaosUntil && now >= walker.dogChaosUntil) {
+        walker.dogChaosNextAt = now + rand(3200, 7600);
+        walker.dogChaosUntil = 0;
+      }
+
+      const dogWander =
+        Math.sin(progress * Math.PI * walker.dogWanderFrequency + walker.dogWanderPhase) *
+        walker.dogWanderAmplitude;
+      const dogChaosDrift = now < walker.dogChaosUntil ? Math.sin(progress * Math.PI * 5 + walker.dogWanderPhase) * 44 : 0;
+      const chaosVector = now < walker.dogChaosUntil ? normalize({ x: -walker.dogWanderVector.y, y: walker.dogWanderVector.x }) : null;
+      const dogHeading = normalize({
+        x: humanTangent.x * 0.82 + walker.dogWanderVector.x * 0.18,
+        y: humanTangent.y * 0.82 + walker.dogWanderVector.y * 0.18
+      });
+
+      const dogTarget = {
+        x:
+          humanPoint.x -
+          humanTangent.x * walker.dogBehindOffset +
+          dogRight.x * walker.dogRightOffset +
+          walker.dogWanderVector.x * dogWander +
+          (chaosVector ? chaosVector.x * dogChaosDrift : 0),
+        y:
+          humanPoint.y -
+          humanTangent.y * walker.dogBehindOffset +
+          dogRight.y * walker.dogRightOffset +
+          walker.dogWanderVector.y * dogWander +
+          (chaosVector ? chaosVector.y * dogChaosDrift : 0)
+      };
 
       createFootprintStamp(
         "paw",
-        humanPoint.x - humanTangent.x * walker.dogBehindOffset + dogRight.x * walker.dogRightOffset,
-        humanPoint.y - humanTangent.y * walker.dogBehindOffset + dogRight.y * walker.dogRightOffset,
-        dogAngle,
+        dogTarget.x,
+        dogTarget.y,
+        (Math.atan2(
+          now < walker.dogChaosUntil ? (dogHeading.y + (chaosVector ? chaosVector.y * 0.35 : 0)) : dogHeading.y,
+          now < walker.dogChaosUntil ? (dogHeading.x + (chaosVector ? chaosVector.x * 0.35 : 0)) : dogHeading.x
+        ) * 180) /
+          Math.PI +
+          90,
         walker.pawScale,
         rand(-5, 5)
       );
@@ -1942,7 +1988,7 @@
 
       const timer = window.setInterval(() => {
         const progress = stepCount <= 1 ? 1 : stepIndex / (stepCount - 1);
-        placeWalkerStep(walker, progress, stepIndex);
+        placeWalkerStep(walker, progress, stepIndex, performance.now());
         stepIndex += 1;
 
         if (stepIndex >= stepCount) {
