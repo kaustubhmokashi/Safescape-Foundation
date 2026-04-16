@@ -16,7 +16,7 @@
   const formTypeInput = document.getElementById("form-type");
   const submittedAtInput = document.getElementById("submitted-at");
   const formStatus = document.getElementById("form-status");
-  const submitButton = document.getElementById("submit-button");
+  const submitButton = document.getElementById("submit-button") || document.getElementById("confirm-button");
   const formTabs = Array.from(document.querySelectorAll(".form-tab"));
   const openFormButtons = Array.from(document.querySelectorAll("[data-open-form]"));
 
@@ -204,9 +204,10 @@
       input.placeholder = "";
       input.removeAttribute("placeholder");
       input.dataset.maxMb = String(field.maxMb || 10);
+      input.dataset.maxFiles = String(field.maxFiles || (field.multiple ? 5 : 1));
     }
 
-    if (prefill && prefill[field.name]) {
+    if (prefill && prefill[field.name] && field.type !== "file") {
       input.value = prefill[field.name];
     }
 
@@ -220,12 +221,204 @@
     return wrapper;
   }
 
+  function buildChoiceField(field) {
+    const wrapper = document.createElement("fieldset");
+    wrapper.className = "form-field is-full";
+
+    const legend = document.createElement("legend");
+    legend.className = "sr-only";
+    legend.textContent = field.label;
+    wrapper.appendChild(legend);
+
+    const title = document.createElement("p");
+    title.className = "question-title";
+    title.textContent = field.label + (field.required ? " *" : "");
+    wrapper.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.className = "choice-grid";
+    grid.dataset.q = field.label;
+    if (field.required) {
+      grid.dataset.required = "true";
+    }
+    if (field.optionType === "checkbox") {
+      grid.dataset.type = "checkbox";
+    }
+
+    const groupName = field.name;
+    const choiceType = field.optionType === "checkbox" ? "checkbox" : "radio";
+    const otherFieldId = field.otherField ? field.otherField.id : `${field.name}_other`;
+
+    (field.options || []).forEach((option) => {
+      const optionLabel = typeof option === "string" ? option : option.label;
+      const optionValue = typeof option === "string" ? option : option.value || option.label;
+      const isOther =
+        Boolean(option && typeof option === "object" && option.other) ||
+        optionLabel === "Other" ||
+        optionValue === "Other";
+      const choice = document.createElement("label");
+      choice.className = "choice";
+
+      const input = document.createElement("input");
+      input.type = choiceType;
+      input.name = groupName;
+      input.value = optionValue;
+      if (field.required && choiceType === "radio") {
+        input.required = true;
+      }
+      if (isOther) {
+        input.dataset.other = otherFieldId;
+      }
+      choice.appendChild(input);
+      choice.appendChild(document.createTextNode(` ${optionLabel}`));
+      grid.appendChild(choice);
+    });
+
+    if (field.otherField) {
+      const otherWrap = document.createElement("div");
+      otherWrap.className = "choice-other";
+      const otherLabel = document.createElement("label");
+      otherLabel.htmlFor = otherFieldId;
+      otherLabel.textContent = field.otherField.label || "Other:";
+      const otherInput = document.createElement("input");
+      otherInput.id = otherFieldId;
+      otherInput.name = field.otherField.name || `${field.name}_other`;
+      otherInput.type = field.otherField.type || "text";
+      otherInput.autocomplete = "off";
+      if (field.otherField.placeholder) {
+        otherInput.placeholder = field.otherField.placeholder;
+      }
+      otherWrap.append(otherLabel, otherInput);
+      grid.appendChild(otherWrap);
+    }
+
+    wrapper.appendChild(grid);
+    return wrapper;
+  }
+
+  function buildSection(section, prefill) {
+    const sectionEl = document.createElement("div");
+    sectionEl.className = "form-section";
+
+    if (section.title) {
+      const title = document.createElement("h2");
+      title.textContent = section.title;
+      sectionEl.appendChild(title);
+    }
+
+    if (section.note) {
+      const note = document.createElement("p");
+      note.className = "section-note";
+      note.textContent = section.note;
+      sectionEl.appendChild(note);
+    }
+
+    if (Array.isArray(section.body)) {
+      const copy = document.createElement("div");
+      copy.className = "form-section-copy";
+      section.body.forEach((line) => {
+        const p = document.createElement("p");
+        p.textContent = line;
+        copy.appendChild(p);
+      });
+      sectionEl.appendChild(copy);
+    }
+
+    if (Array.isArray(section.numbered) && section.numbered.length) {
+      const list = document.createElement("ol");
+      list.className = "form-section-numbered";
+      section.numbered.forEach((line) => {
+        const item = document.createElement("li");
+        item.textContent = line;
+        list.appendChild(item);
+      });
+      sectionEl.appendChild(list);
+    }
+
+    if (Array.isArray(section.bullets) && section.bullets.length) {
+      const list = document.createElement("ul");
+      list.className = "form-section-bullets";
+      section.bullets.forEach((line) => {
+        const item = document.createElement("li");
+        item.textContent = line;
+        list.appendChild(item);
+      });
+      sectionEl.appendChild(list);
+    }
+
+    const fields = document.createElement("div");
+    fields.className = "form-fields";
+
+    (section.fields || []).forEach((field) => {
+      if (field.type === "choice") {
+        fields.appendChild(buildChoiceField(field));
+      } else {
+        fields.appendChild(buildField(field, prefill));
+      }
+    });
+
+    sectionEl.appendChild(fields);
+    return sectionEl;
+  }
+
   function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
       reader.onerror = () => reject(new Error("Unable to read the selected file."));
       reader.readAsDataURL(file);
+    }).then(async (rawDataUrl) => {
+      if (!file || !(file instanceof File) || !String(file.type || "").startsWith("image/")) {
+        return rawDataUrl;
+      }
+
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Unable to process the selected image."));
+        img.src = rawDataUrl;
+      });
+
+      const maxWidth = 1600;
+      const maxHeight = 1600;
+      const naturalWidth = image.naturalWidth || image.width || maxWidth;
+      const naturalHeight = image.naturalHeight || image.height || maxHeight;
+      const scale = Math.min(1, maxWidth / naturalWidth, maxHeight / naturalHeight);
+
+      if (scale >= 1 && file.size <= 1024 * 1024) {
+        return rawDataUrl;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(naturalHeight * scale));
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return rawDataUrl;
+      }
+
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const compressedDataUrl = await new Promise((resolve) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(rawDataUrl);
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || rawDataUrl));
+            reader.onerror = () => resolve(rawDataUrl);
+            reader.readAsDataURL(blob);
+          },
+          "image/jpeg",
+          0.82
+        );
+      });
+
+      return compressedDataUrl || rawDataUrl;
     });
   }
 
@@ -250,9 +443,9 @@
       }
 
       if (node instanceof HTMLInputElement && node.type === "file") {
-        const file = node.files && node.files[0];
-        responses[title] = file ? file.name : "";
-        if (file) {
+        const files = Array.from(node.files || []);
+        responses[title] = files.length ? files.map((file) => file.name).join(", ") : "";
+        for (const file of files) {
           uploads.push({
             question: title,
             fieldName: node.name || node.id || "",
@@ -283,7 +476,9 @@
     formTypeInput.value = formType;
     formTitle.textContent = definition.title;
     formDescription.textContent = definition.description;
-    submitButton.textContent = definition.submitLabel;
+    if (submitButton) {
+      submitButton.textContent = definition.submitLabel;
+    }
 
     formTabs.forEach((tab) => {
       tab.classList.toggle("is-active", tab.getAttribute("data-form-target") === formType);
@@ -291,9 +486,15 @@
 
     formFields.innerHTML = "";
     const prefill = options && options.petName ? { petInterested: options.petName } : null;
-    definition.fields.forEach((field) => {
-      formFields.appendChild(buildField(field, prefill));
-    });
+    if (Array.isArray(definition.sections)) {
+      definition.sections.forEach((section) => {
+        formFields.appendChild(buildSection(section, prefill));
+      });
+    } else {
+      definition.fields.forEach((field) => {
+        formFields.appendChild(buildField(field, prefill));
+      });
+    }
 
     clearStatus();
   }
@@ -469,15 +670,20 @@
     const container = getFieldContainer(control);
     const value = normalizeValue(control.value);
 
-    if (control instanceof HTMLInputElement && control.type === "file") {
-      const file = control.files && control.files[0];
+      if (control instanceof HTMLInputElement && control.type === "file") {
+      const files = Array.from(control.files || []);
       const maxMb = Number(control.dataset.maxMb || 10);
-      if (control.required && !file) {
+      const maxFiles = Number(control.dataset.maxFiles || (control.multiple ? 5 : 1));
+      if (control.required && !files.length) {
         setFieldError(container, "Please attach a file.");
         return false;
       }
-      if (file && maxMb > 0 && file.size > maxMb * 1024 * 1024) {
-        setFieldError(container, `Please choose a file smaller than ${maxMb} MB.`);
+      if (maxFiles > 0 && files.length > maxFiles) {
+        setFieldError(container, `Please choose no more than ${maxFiles} file${maxFiles === 1 ? "" : "s"}.`);
+        return false;
+      }
+      if (files.some((file) => maxMb > 0 && file.size > maxMb * 1024 * 1024)) {
+        setFieldError(container, `Please choose files smaller than ${maxMb} MB.`);
         return false;
       }
       setFieldError(container, "");
@@ -711,6 +917,57 @@
     syncAllOtherFields(formEl);
   }
 
+  function fillFosterTestData(formEl) {
+    if (!formEl || formEl.dataset.sheetForm !== "foster") {
+      return;
+    }
+
+    setNativeFieldValue(formEl.querySelector("#fullName"), "Test Foster");
+    setNativeFieldValue(formEl.querySelector("#phone"), "9988002758");
+    setNativeFieldValue(formEl.querySelector("#email"), "test.foster@safescape.local");
+    setNativeFieldValue(formEl.querySelector("#address"), "12, Green Grove, Bengaluru, Karnataka");
+
+    setRadioValue(formEl, "typeOfResidence", "Independant House");
+    setNativeFieldValue(formEl.querySelector("#type_of_residence_other"), "No additional notes");
+    setRadioValue(formEl, "ownershipStatus", "Owned");
+    setRadioValue(formEl, "landlordPermission", "Yes");
+    setNativeFieldValue(formEl.querySelector("#householdMembers"), "4");
+    setRadioValue(formEl, "childrenOrSeniors", "No");
+    setNativeFieldValue(formEl.querySelector("#ageGroup"), "Not applicable");
+
+    setRadioValue(formEl, "currentPets", "Yes");
+    setNativeFieldValue(formEl.querySelector("#currentPetsType"), "Dog");
+    setNativeFieldValue(formEl.querySelector("#currentPetsAge"), "3 years");
+
+    setRadioValue(formEl, "fosteredBefore", "Yes");
+    setRadioValue(formEl, "ownedPetsBefore", "Yes");
+
+    setCheckboxValues(formEl, "fosterComfort", ["Puppies", "Adult dogs", "Special needs / medical cases"]);
+    setCheckboxValues(formEl, "sizePreferences", ["Medium", "Large"]);
+    setRadioValue(formEl, "durationAvailability", "Short term ( 2-4 weeks )");
+
+    setRadioValue(formEl, "meatFood", "Yes");
+    setRadioValue(formEl, "specialDiets", "Yes");
+    setRadioValue(formEl, "medicalFinancialNeeds", "Yes");
+    setRadioValue(formEl, "hospitalSupport", "Yes");
+    setRadioValue(formEl, "basicMedication", "Yes");
+
+    setRadioValue(formEl, "workSetup", "Hybrid");
+    setNativeFieldValue(formEl.querySelector("#hoursAlone"), "4");
+    setNativeFieldValue(formEl.querySelector("#primaryCaregiver"), "Primary caregiver: Test Foster");
+
+    setNativeFieldValue(formEl.querySelector("#alternateContactName"), "Test Contact");
+    setNativeFieldValue(formEl.querySelector("#alternateContactNumber"), "9876501234");
+
+    const agree = formEl.querySelector("input[name='fosterTermsAgree']");
+    if (agree) {
+      agree.checked = true;
+      agree.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    syncAllOtherFields(formEl);
+  }
+
   function maybeApplyAdoptionTestFill(sheetForm, target) {
     if (
       sheetForm.dataset.sheetForm === "adoption" &&
@@ -722,6 +979,17 @@
     }
   }
 
+  function maybeApplyFosterTestFill(sheetForm, target) {
+    if (
+      sheetForm.dataset.sheetForm === "foster" &&
+      target instanceof HTMLInputElement &&
+      target.id === "fullName" &&
+      target.value.trim() === adoptionTestFillTrigger
+    ) {
+      fillFosterTestData(sheetForm);
+    }
+  }
+
   async function handleSheetFormSubmit(event) {
     event.preventDefault();
 
@@ -729,11 +997,9 @@
     const formEl = event.currentTarget;
     const statusEl = formEl.querySelector("[data-form-status]");
 
-    if (getSheetFormType(formEl) === "adoption") {
-      const confirmButton = formEl.querySelector("#confirm-button");
-      if (confirmButton && typeof confirmButton.click === "function") {
-        confirmButton.click();
-      }
+    const confirmButton = formEl.querySelector("#confirm-button");
+    if (confirmButton && typeof confirmButton.click === "function") {
+      confirmButton.click();
       return;
     }
 
@@ -1104,6 +1370,7 @@
           }
         }
         maybeApplyAdoptionTestFill(sheetForm, target);
+        maybeApplyFosterTestFill(sheetForm, target);
       });
 
       sheetForm.addEventListener("input", (event) => {
@@ -1112,6 +1379,7 @@
           return;
         }
         maybeApplyAdoptionTestFill(sheetForm, target);
+        maybeApplyFosterTestFill(sheetForm, target);
       });
 
       const confirmButton = sheetForm.querySelector("#confirm-button");
@@ -1314,12 +1582,12 @@
       cursorElement.classList.add("is-visible");
       setCursorInverted(shouldInvertCursor(event.target));
       setCursorUpright(shouldUprightCursor(event.target));
-      // Keep cursor scaling anchored to this hotspot to avoid "jumping" when pressed.
+      // Keep the cursor anchored directly under the pointer without easing lag.
       cursorElement.style.setProperty("--cursor-x", `${x - 10}px`);
       cursorElement.style.setProperty("--cursor-y", `${y - 7}px`);
     };
 
-    document.addEventListener("mousemove", moveCursor, { passive: true });
+    document.addEventListener("pointermove", moveCursor, { passive: true });
     document.addEventListener(
       "mouseover",
       (event) => {
@@ -1457,6 +1725,259 @@
     );
   }
 
+  function setupWalkingFootprints() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    if (typeof window.PointerEvent !== "function" || typeof window.requestAnimationFrame !== "function") {
+      return;
+    }
+
+    document.body.classList.add("has-footprints");
+
+    const layer = document.createElement("div");
+    layer.className = "footprints-layer";
+    layer.setAttribute("aria-hidden", "true");
+    document.body.appendChild(layer);
+
+    let activeWalkerCount = 0;
+
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    const getViewport = () => ({
+      width: window.innerWidth || document.documentElement.clientWidth || 1280,
+      height: window.innerHeight || document.documentElement.clientHeight || 720,
+      scrollX: window.scrollX || window.pageXOffset || 0,
+      scrollY: window.scrollY || window.pageYOffset || 0
+    });
+
+    const pickEdgePoint = (edge, margin) => {
+      const { width, height, scrollX, scrollY } = getViewport();
+      const xRange = [margin, Math.max(margin, width - margin)];
+      const yRange = [margin, Math.max(margin, height - margin)];
+
+      switch (edge) {
+        case "left":
+          return { x: scrollX - margin, y: scrollY + rand(yRange[0], yRange[1]) };
+        case "right":
+          return { x: scrollX + width + margin, y: scrollY + rand(yRange[0], yRange[1]) };
+        case "top":
+          return { x: scrollX + rand(xRange[0], xRange[1]), y: scrollY - margin };
+        default:
+          return { x: scrollX + rand(xRange[0], xRange[1]), y: scrollY + height + margin };
+      }
+    };
+
+    const cubicPoint = (t, p0, p1, p2, p3) => {
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const t2 = t * t;
+
+      return {
+        x:
+          mt2 * mt * p0.x +
+          3 * mt2 * t * p1.x +
+          3 * mt * t2 * p2.x +
+          t2 * t * p3.x,
+        y:
+          mt2 * mt * p0.y +
+          3 * mt2 * t * p1.y +
+          3 * mt * t2 * p2.y +
+          t2 * t * p3.y
+      };
+    };
+
+    const cubicTangent = (t, p0, p1, p2, p3) => {
+      const mt = 1 - t;
+      return {
+        x:
+          3 * mt * mt * (p1.x - p0.x) +
+          6 * mt * t * (p2.x - p1.x) +
+          3 * t * t * (p3.x - p2.x),
+        y:
+          3 * mt * mt * (p1.y - p0.y) +
+          6 * mt * t * (p2.y - p1.y) +
+          3 * t * t * (p3.y - p2.y)
+      };
+    };
+
+    const estimateCurveLength = (p0, p1, p2, p3, samples = 42) => {
+      let length = 0;
+      let prev = cubicPoint(0, p0, p1, p2, p3);
+
+      for (let index = 1; index <= samples; index += 1) {
+        const point = cubicPoint(index / samples, p0, p1, p2, p3);
+        length += Math.hypot(point.x - prev.x, point.y - prev.y);
+        prev = point;
+      }
+
+      return length;
+    };
+
+    const normalize = (vector) => {
+      const length = Math.hypot(vector.x, vector.y) || 1;
+      return { x: vector.x / length, y: vector.y / length };
+    };
+
+    const createFootprintStamp = (kind, x, y, angle, scale, wobble = 0) => {
+      const stamp = document.createElement("div");
+      stamp.className = `footprint-stamp footprint-stamp--${kind}`;
+      stamp.setAttribute("aria-hidden", "true");
+      stamp.style.left = `${x}px`;
+      stamp.style.top = `${y}px`;
+      stamp.style.setProperty("--footprint-angle", `${angle + wobble}deg`);
+      stamp.style.setProperty("--footprint-scale", `${scale}`);
+      stamp.style.setProperty("--footprint-wobble", `${wobble}deg`);
+
+      const image = document.createElement("img");
+      image.alt = "";
+      image.src =
+        kind === "paw"
+          ? "assets/pawprint.svg"
+          : kind === "left"
+            ? "assets/footprint-left.svg"
+            : "assets/footprint-right.svg";
+      stamp.appendChild(image);
+      layer.appendChild(stamp);
+
+      window.setTimeout(() => {
+        stamp.remove();
+      }, 2050);
+    };
+
+    const buildWalker = () => {
+      const { width, height } = getViewport();
+      const margin = Math.max(92, Math.round(Math.min(width, height) * 0.16));
+      const edges = ["left", "right", "top", "bottom"];
+      const startEdge = edges[Math.floor(Math.random() * edges.length)];
+      let endEdge = edges[Math.floor(Math.random() * edges.length)];
+
+      while (endEdge === startEdge) {
+        endEdge = edges[Math.floor(Math.random() * edges.length)];
+      }
+
+      const start = pickEdgePoint(startEdge, margin);
+      const end = pickEdgePoint(endEdge, margin);
+      const delta = { x: end.x - start.x, y: end.y - start.y };
+      const distance = Math.hypot(delta.x, delta.y) || 1;
+      const normal = normalize({ x: -delta.y, y: delta.x });
+      const bend = rand(distance * 0.14, distance * 0.3) * (Math.random() < 0.5 ? -1 : 1);
+      const sway = rand(distance * 0.04, distance * 0.14) * (Math.random() < 0.5 ? -1 : 1);
+
+      return {
+        p0: start,
+        p1: {
+          x: start.x + delta.x * 0.28 + normal.x * bend,
+          y: start.y + delta.y * 0.28 + normal.y * bend - sway
+        },
+        p2: {
+          x: start.x + delta.x * 0.72 - normal.x * bend,
+          y: start.y + delta.y * 0.72 - normal.y * bend + sway
+        },
+        p3: end,
+        curveLength: estimateCurveLength(start, {
+          x: start.x + delta.x * 0.28 + normal.x * bend,
+          y: start.y + delta.y * 0.28 + normal.y * bend - sway
+        }, {
+          x: start.x + delta.x * 0.72 - normal.x * bend,
+          y: start.y + delta.y * 0.72 - normal.y * bend + sway
+        }, end),
+        stepInterval: rand(200, 280),
+        sideOffset: 8,
+        dogBehindOffset: 72,
+        dogRightOffset: 16,
+        scale: rand(0.44, 0.68),
+        pawScale: rand(0.32, 0.48)
+      };
+    };
+
+    const placeWalkerStep = (walker, progress, index) => {
+      const tHuman = clamp(progress, 0, 1);
+      const humanPoint = cubicPoint(tHuman, walker.p0, walker.p1, walker.p2, walker.p3);
+      const humanTangent = normalize(cubicTangent(tHuman, walker.p0, walker.p1, walker.p2, walker.p3));
+      const humanNormal = normalize({ x: -humanTangent.y, y: humanTangent.x });
+      const side = index % 2 === 0 ? -1 : 1;
+      const humanOffset = walker.sideOffset * side;
+      const humanAngle = (Math.atan2(humanTangent.y, humanTangent.x) * 180) / Math.PI + 90;
+
+      createFootprintStamp(
+        side < 0 ? "left" : "right",
+        humanPoint.x + humanNormal.x * humanOffset,
+        humanPoint.y + humanNormal.y * humanOffset,
+        humanAngle,
+        walker.scale,
+        rand(-7, 7)
+      );
+
+      const dogRight = normalize({ x: humanTangent.y, y: -humanTangent.x });
+      const dogAngle = (Math.atan2(humanTangent.y, humanTangent.x) * 180) / Math.PI + 90;
+
+      createFootprintStamp(
+        "paw",
+        humanPoint.x - humanTangent.x * walker.dogBehindOffset + dogRight.x * walker.dogRightOffset,
+        humanPoint.y - humanTangent.y * walker.dogBehindOffset + dogRight.y * walker.dogRightOffset,
+        dogAngle,
+        walker.pawScale,
+        rand(-5, 5)
+      );
+    };
+
+    const launchWalker = () => {
+      if (activeWalkerCount >= 2) {
+        return;
+      }
+
+      const walker = buildWalker();
+      activeWalkerCount += 1;
+      const stepSpacing = 12;
+      const stepCount = Math.max(24, Math.round(walker.curveLength / stepSpacing));
+      const totalDuration = Math.round(stepCount * walker.stepInterval);
+      let stepIndex = 0;
+
+      // Show the first step immediately so the animation begins as soon as the page loads.
+      placeWalkerStep(walker, 0, stepIndex);
+      stepIndex += 1;
+
+      const timer = window.setInterval(() => {
+        const progress = stepCount <= 1 ? 1 : stepIndex / (stepCount - 1);
+        placeWalkerStep(walker, progress, stepIndex);
+        stepIndex += 1;
+
+        if (stepIndex >= stepCount) {
+          window.clearInterval(timer);
+        }
+      }, walker.stepInterval);
+
+      window.setTimeout(() => {
+        activeWalkerCount = Math.max(0, activeWalkerCount - 1);
+      }, totalDuration + 2300);
+    };
+
+    const scheduleNext = () => {
+      if (activeWalkerCount < 2) {
+        launchWalker();
+      }
+
+      window.setTimeout(scheduleNext, rand(2600, 5600));
+    };
+
+    const syncLayerHeight = () => {
+      layer.style.height = `${Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        window.innerHeight || 0
+      )}px`;
+    };
+
+    syncLayerHeight();
+    window.addEventListener("resize", syncLayerHeight, { passive: true });
+    window.addEventListener("orientationchange", syncLayerHeight, { passive: true });
+
+    scheduleNext();
+  }
+
   function syncHeaderState() {
     if (!siteHeader) {
       return;
@@ -1582,6 +2103,7 @@
   setupRevealSections();
   setupCustomCursor();
   setupCursorStamping();
+  setupWalkingFootprints();
   setupGoogleFormScaleToFit();
   renderInstagramFeed();
 })();

@@ -8,7 +8,8 @@ const FORM_DESTINATIONS = {
     sheetName: "Volunteer"
   },
   foster: {
-    spreadsheetId: "PASTE_SPREADSHEET_ID_HERE",
+    spreadsheetId: "1Nl3CJi3f2Wf40oEko-yEkN51VM9NrWziSADzDFIC9Lc",
+    sheetId: 1012606437,
     sheetName: "Foster"
   },
   surrender: {
@@ -19,6 +20,7 @@ const FORM_DESTINATIONS = {
 
 const DEFAULT_NOTIFICATION_RECIPIENT = "contact@safescapefoundation.com";
 const DEFAULT_FOSTER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const DEFAULT_FOSTER_UPLOAD_FOLDER_ID = "1flpOyaidWffR0aFycYIKcFo4BhPjqV3r";
 const FOSTER_UPLOAD_FOLDER_PROPERTY_KEYS = [
   "FOSTER_UPLOAD_FOLDER_ID",
   "UPLOAD_FOLDER_FOSTER",
@@ -35,7 +37,7 @@ function doPost(e) {
   }
 
   const sheetName = String(payload.sheetName || destination.sheetName || "").trim() || destination.sheetName;
-  const sheet = getOrCreateSheet(destination.spreadsheetId, sheetName);
+  const sheet = getOrCreateSheet(destination.spreadsheetId, sheetName, destination.sheetId);
   const sheetId = sheet.getSheetId();
 
   // "responses" keys are the sheet headers, and must match the exact form question titles.
@@ -111,17 +113,29 @@ function processUploadsForSubmission_(formType, spreadsheetId, responses, upload
   }
 
   folder = resolveUploadFolder_(spreadsheetId, formType);
+  var uploadCounts = {};
 
   for (index = 0; index < uploadList.length; index += 1) {
+    var questionKey = String(uploadList[index].question || "");
+    uploadCounts[questionKey] = (uploadCounts[questionKey] || 0) + 1;
+    if (uploadCounts[questionKey] > 5) {
+      throw new Error("Please choose no more than 5 files for a single upload question.");
+    }
     createdFiles.push(createUploadFile_(folder, uploadList[index]));
   }
 
+  var uploadsByQuestion = {};
   createdFiles.forEach(function(fileMeta) {
     if (!fileMeta || !fileMeta.question) {
       return;
     }
 
-    responses[fileMeta.question] = fileMeta.url;
+    if (!uploadsByQuestion[fileMeta.question]) {
+      uploadsByQuestion[fileMeta.question] = [];
+    }
+
+    uploadsByQuestion[fileMeta.question].push(fileMeta.url);
+    responses[fileMeta.question] = uploadsByQuestion[fileMeta.question].join("\n");
   });
 
   return createdFiles;
@@ -149,6 +163,14 @@ function resolveUploadFolder_(spreadsheetId, formType) {
       folderId = String(scriptProperties.getProperty(FOSTER_UPLOAD_FOLDER_PROPERTY_KEYS[index]) || "").trim();
       if (folderId) {
         return DriveApp.getFolderById(folderId);
+      }
+    }
+
+    if (DEFAULT_FOSTER_UPLOAD_FOLDER_ID) {
+      try {
+        return DriveApp.getFolderById(DEFAULT_FOSTER_UPLOAD_FOLDER_ID);
+      } catch (error) {
+        // fall through to the spreadsheet parent folder
       }
     }
   }
@@ -213,9 +235,21 @@ function sanitizeFileName_(value) {
     .slice(0, 120) || "upload";
 }
 
-function getOrCreateSheet(spreadsheetId, sheetName) {
+function getOrCreateSheet(spreadsheetId, sheetName, sheetId) {
   const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
   let sheet = spreadsheet.getSheetByName(sheetName);
+
+  if (!sheet && sheetId !== undefined && sheetId !== null && String(sheetId).trim() !== "") {
+    const desiredSheetId = Number(sheetId);
+    if (!Number.isNaN(desiredSheetId)) {
+      const sheets = spreadsheet.getSheets();
+      for (let index = 0; index < sheets.length; index += 1) {
+        if (sheets[index].getSheetId() === desiredSheetId) {
+          return sheets[index];
+        }
+      }
+    }
+  }
 
   if (!sheet) {
     const sheets = spreadsheet.getSheets();

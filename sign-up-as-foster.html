@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="assets/cursor.svg" sizes="any" />
-    <title>Sign up as foster | Safescape Foundation</title>
+    <title>Sign up as a Foster | Safescape Foundation</title>
     <meta
       name="description"
-      content="Offer a temporary home for a Safescape rescue dog and share the setup you can provide."
+      content="Sign up as a foster for Safescape Foundation and share the home, routine, and support you can offer."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260416_6" />
   </head>
   <body class="form-page-body" data-default-form="foster">
     <div class="page-shell">
@@ -32,43 +32,144 @@
       </header>
 
       <main class="form-page-layout form-page-main">
-        <section class="form-page-hero section">
-          <p class="eyebrow">Safescape Form</p>
-          <h1>Sign up as foster</h1>
-          <p>
-            Let Safescape know what kind of temporary home, routine, and support you can offer while a rescue dog waits
-            for the right forever family.
-          </p>
-          <p class="form-page-note">Your response will go directly to the Safescape team through this new digital home.</p>
-          <a class="button button-secondary" href="index.html#pillars">Back to home</a>
-        </section>
-
-        <section class="form-page-panel section">
-          <div class="form-panel">
+        <section class="form-page-panel form-page-panel-bare section">
+          <div class="form-panel form-panel-bare">
             <div class="form-panel-header">
-              <h3 id="form-title">Sign up as foster</h3>
-              <p id="form-description">Share your home setup and the kind of foster support you can offer.</p>
+              <h1 class="form-page-title" id="form-title">Sign up as a Foster</h1>
+              <p class="form-page-subtitle" id="form-description">
+                Tell us a bit about yourself so we can stay in touch.
+              </p>
             </div>
 
-            <form id="lead-form" class="lead-form" method="POST" target="submission-frame" novalidate>
+            <form
+              id="lead-form"
+              class="sheet-form lead-form"
+              data-sheet-form="foster"
+              data-sheet-name="Foster"
+              novalidate
+            >
               <input type="hidden" name="formType" id="form-type" value="foster" />
               <input type="hidden" name="submittedAt" id="submitted-at" value="" />
               <input type="hidden" name="sourcePage" value="sign-up-as-foster" />
               <div id="form-fields" class="form-fields"></div>
-              <div class="form-actions-row">
-                <button id="submit-button" class="button button-primary" type="submit">Submit foster application</button>
-                <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+              <div class="form-actions-row form-actions-row-stacked">
+                <button class="button button-primary" type="button" id="confirm-button">Confirm</button>
+                <p class="form-status" role="status" aria-live="polite" data-form-status></p>
               </div>
             </form>
           </div>
-
-          <iframe name="submission-frame" title="Hidden form submission target" class="submission-frame"></iframe>
         </section>
       </main>
     </div>
 
-    <script src="js/site-config.js"></script>
-    <script src="js/site-data.js"></script>
-    <script src="js/main.js"></script>
+    <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+      <div class="terms-dialog-card">
+        <div class="terms-dialog-head">
+          <p class="terms-kicker">Safescape Foundation</p>
+          <h2 class="terms-title" id="terms-title">Terms &amp; Conditions</h2>
+        </div>
+        <div class="terms-scroll" id="terms-scroll" role="document" aria-label="Terms and Conditions">
+          <div class="terms-content">
+            <p>
+              1. Nature of Foster Care
+            </p>
+            <p>
+              Fostering is a temporary caregiving arrangement. Ownership of the animal remains with Safescape
+              Foundation at all times.
+            </p>
+            <p>
+              2. Foster Responsibilities
+            </p>
+            <p>The Foster agrees to:</p>
+            <p>a. Provide a safe, clean, and secure environment for the animal</p>
+            <p>b. Ensure proper feeding, hygiene, and daily care</p>
+            <p>c. Treat the animal humanely and not subject it to abuse, neglect, or harm</p>
+            <p>d. Follow all care instructions provided by the Organization</p>
+            <p>
+              3. Medical Care
+            </p>
+            <p>
+              The Foster agrees to:
+            </p>
+            <p>
+              a. Inform the Organization immediately in case of illness, injury, or unusual behavior
+            </p>
+            <p>
+              b. Not undertake major medical procedures or decisions without prior approval from the Organization,
+              except in emergencies
+            </p>
+            <p>
+              c. Assist in administering basic medication if required and feasible
+            </p>
+            <p>
+              4. No Transfer or Rehoming
+            </p>
+            <p>
+              The Foster shall not give away, transfer, sell, or rehome the animal under any circumstances. All
+              adoption decisions are the sole responsibility of the Organization.
+            </p>
+            <p>
+              5. Duration &amp; Return
+            </p>
+            <p>Foster duration will be mutually agreed upon. The Foster agrees to:</p>
+            <p>a. Return the animal upon request or at the end of the foster period</p>
+            <p>b. Provide reasonable notice if unable to continue fostering</p>
+            <p>6. Follow-Up &amp; Coordination</p>
+            <p>The Foster agrees to:</p>
+            <p>a. Share updates, photos, or videos of the animal when requested</p>
+            <p>b. Cooperate in arranging adoption meets, check-ins, or transfers</p>
+            <p>7. Liability</p>
+            <p>
+              The Foster understands that animals may behave unpredictably. The Foster agrees to take reasonable
+              precautions and assumes responsibility for minor damages or incidents during the foster period.
+              Safescape Foundation shall not be held liable for such incidents.
+            </p>
+            <p>8. Expenses</p>
+            <p>Unless otherwise agreed:</p>
+            <p>a. Major medical expenses will be handled or approved by the Organization</p>
+            <p>b. Day-to-day expenses such as food and basic care may be borne by the Foster</p>
+            <p>9. Welfare Commitment</p>
+            <p>
+              The Foster agrees to ensure the welfare of the animal in accordance with applicable laws, including the
+              Prevention of Cruelty to Animals Act, 1960.
+            </p>
+            <p>10. Right to Reclaim</p>
+            <p>
+              The Organization reserves the right to reclaim the animal at any time if the foster environment is
+              deemed unsafe, unsuitable, or if any terms of this Agreement are violated.
+            </p>
+            <p>11. Consent for Communication</p>
+            <p>
+              The Foster consents to being contacted by Safescape Foundation for coordination, follow-ups, and support
+              via phone, WhatsApp, or email.
+            </p>
+            <p>12. Declaration</p>
+            <p>The Foster confirms that:</p>
+            <p>All information provided is true and accurate</p>
+            <p>They understand the responsibilities of fostering</p>
+            <p>They agree to abide by all the terms stated above</p>
+          </div>
+        </div>
+        <div class="terms-state" id="terms-state">
+          <label class="terms-agree" id="terms-agree-wrap">
+            <input type="checkbox" id="terms-agree" />
+            <span>I agree with all above points</span>
+          </label>
+          <div class="terms-state-feedback" id="terms-state-feedback" hidden>
+            <span class="terms-state-icon" aria-hidden="true"></span>
+            <span class="terms-state-text" id="terms-state-text"></span>
+          </div>
+        </div>
+        <div class="terms-actions" id="terms-actions">
+          <button class="button button-primary" type="button" id="terms-submit">
+            <span class="terms-submit-text">Submit</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/site-config.js?v=20260416_6"></script>
+    <script src="js/site-data.js?v=20260416_6"></script>
+    <script src="js/main.js?v=20260416_6"></script>
   </body>
 </html>

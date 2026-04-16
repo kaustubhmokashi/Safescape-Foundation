@@ -153,43 +153,180 @@ window.SAFESCAPE_SITE_DATA = {
       ]
     },
     foster: {
-      title: "Sign up as foster",
-      description: "Share your home setup and the kind of foster support you can offer.",
+      title: "Sign up as a Foster",
+      description: "Tell us a bit about yourself so we can stay in touch.",
       submitLabel: "Submit foster application",
-      fields: [
-        { name: "fullName", label: "Full name", type: "text", required: true },
-        { name: "email", label: "Email address", type: "email", required: true },
-        { name: "phone", label: "Phone number", type: "tel", required: true },
-        { name: "city", label: "City", type: "text", required: true },
+      sections: [
         {
-          name: "fosterFile",
-          label: "Upload a supporting file",
-          type: "file",
-          required: true,
-          accept: ".pdf,.jpg,.jpeg,.png",
-          help: "PDF, JPG, or PNG up to 10 MB."
+          title: "Sign up as a Foster",
+          note: "Tell us a bit about yourself so we can stay in touch.",
+          fields: [
+            { name: "fullName", label: "Full name", type: "text", required: true, fullWidth: true },
+            { name: "phone", label: "Phone number", type: "tel", required: true, fullWidth: true },
+            { name: "email", label: "Email ID", type: "email", required: true, fullWidth: true },
+            { name: "address", label: "Address", type: "textarea", required: true, fullWidth: true }
+          ]
         },
         {
-          name: "homeType",
-          label: "Home type",
-          type: "select",
-          required: true,
-          options: ["Apartment", "Independent house", "Farm / estate", "Other"]
+          title: "Your Living Environment",
+          note: "Help us understand the space where the foster pet will stay.",
+          fields: [
+            {
+              name: "typeOfResidence",
+              label: "Type of residence",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Apartment", "Independant House", "Farm", "Other"],
+              otherField: { id: "type_of_residence_other", name: "type_of_residence_other", label: "Other:", placeholder: "Please specify" }
+            },
+            {
+              name: "ownershipStatus",
+              label: "Ownership status",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Owned", "Rented"]
+            },
+            {
+              name: "landlordPermission",
+              label: "If Rented-> Do you have landlord permission for pets?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No"]
+            },
+            { name: "householdMembers", label: "Number of household members", type: "number", required: true, fullWidth: true },
+            {
+              name: "childrenOrSeniors",
+              label: "Any Children or Senior Citizens?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No"]
+            },
+            { name: "ageGroup", label: "If Yes -> Age group?", type: "text", required: false, fullWidth: true }
+          ]
         },
-        { name: "existingPets", label: "Existing pets", type: "text", required: false },
         {
-          name: "duration",
-          label: "How long can you foster?",
-          type: "select",
-          required: true,
-          options: ["Under 2 weeks", "2 to 6 weeks", "2+ months", "Flexible"]
+          title: "Pets at home?",
+          note: "This helps us ensure compatibility and safety for all animals.",
+          fields: [
+            {
+              name: "currentPets",
+              label: "Do you current have pets?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No"]
+            },
+            { name: "currentPetsType", label: "If yes -> Type", type: "text", required: false, fullWidth: true },
+            { name: "currentPetsAge", label: "If yes -> Age", type: "text", required: false, fullWidth: true }
+          ]
         },
         {
-          name: "message",
-          label: "Anything Safescape should know about your setup?",
-          type: "textarea",
-          required: true,
-          fullWidth: true
+          title: "Your experience",
+          note: "No experience is okay — we just want to understand your comfort level.",
+          fields: [
+            {
+              name: "fosteredBefore",
+              label: "Have you fostered before?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No"]
+            },
+            {
+              name: "ownedPetsBefore",
+              label: "Have you owned pets before?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No"]
+            }
+          ]
+        },
+        {
+          title: "Foster Preferences",
+          note: "Tell us what kind of foster cases you’re comfortable with.",
+          fields: [
+            {
+              name: "fosterComfort",
+              label: "Type of pets you're comfortable with?",
+              type: "choice",
+              optionType: "checkbox",
+              required: true,
+              options: ["Puppies", "Adult dogs", "Senior dogs", "Special needs / medical cases"]
+            },
+            {
+              name: "sizePreferences",
+              label: "Size preferences",
+              type: "choice",
+              optionType: "checkbox",
+              required: true,
+              options: ["Small", "Medium", "Large"]
+            },
+            {
+              name: "durationAvailability",
+              label: "Duration availability",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Emergency ( 1-7 days )", "Short term ( 2-4 weeks )", "Long term ( > 1 month )"]
+            }
+          ]
+        },
+        {
+          title: "Foster readiness",
+          note: "Some fosters may require extra care — this helps us match you better.",
+          fields: [
+            { name: "meatFood", label: "Are you comfortable handling meat-based food for the foster?", type: "choice", optionType: "radio", required: true, options: ["Yes", "No"] },
+            { name: "specialDiets", label: "Are you comfortable managing special diets (medical or prescribed)", type: "choice", optionType: "radio", required: true, options: ["Yes", "No"] },
+            { name: "medicalFinancialNeeds", label: "Will you be able to assist with medical or financial needs if required?", type: "choice", optionType: "radio", required: true, options: ["Yes", "No"] },
+            { name: "hospitalSupport", label: "Will you be able to take the foster pet(s) to a hospital in case of emergency?", type: "choice", optionType: "radio", required: true, options: ["Yes", "No"] },
+            { name: "basicMedication", label: "Are you comfortable administering basic medication (oral / topical)?", type: "choice", optionType: "radio", required: true, options: ["Yes", "No"] }
+          ]
+        },
+        {
+          title: "Daily Routine & Availability",
+          note: "This helps us understand how the foster pet will fit into your day.",
+          fields: [
+            {
+              name: "workSetup",
+              label: "Work setup:",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Work from home", "Office", "Hybrid"]
+            },
+            { name: "hoursAlone", label: "How many hours will the pet be alone daily?", type: "text", required: true, fullWidth: true },
+            { name: "primaryCaregiver", label: "Who will be the primary caregiver?", type: "text", required: true, fullWidth: true }
+          ]
+        },
+        {
+          title: "Home Photos",
+          note: "Just to ensure the space is safe and comfortable",
+          fields: [
+            {
+              name: "livingAreaPhotos",
+              label: "Upload photos of your Living area",
+              type: "file",
+              required: true,
+              multiple: true,
+              maxFiles: 5,
+              accept: ".jpg,.jpeg,.png",
+              maxMb: 10,
+              help: "You can upload multiple JPG or PNG photos up to 10 MB each."
+            }
+          ]
+        },
+        {
+          title: "Emergency contact",
+          note: "In case we are unable to reach you.",
+          fields: [
+            { name: "alternateContactName", label: "Name of alternate contact", type: "text", required: true, fullWidth: true },
+            { name: "alternateContactNumber", label: "Contact number of alternate contact", type: "tel", required: true, fullWidth: true }
+          ]
         }
       ]
     },
