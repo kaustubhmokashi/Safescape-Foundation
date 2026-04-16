@@ -1283,6 +1283,29 @@ body.js-ready .reveal-section.is-visible {
   border: 1px solid rgba(62, 89, 16, 0.09);
 }
 
+.form-page-panel-embed {
+  padding: 0;
+  border-radius: calc(var(--radius-xl) + 4px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.form-panel.google-form-embed {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.google-form-iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
 .lead-form {
   margin-top: 1.4rem;
 }
@@ -1857,20 +1880,9 @@ a.footer-donate-button:hover {
     grid-template-columns: 1fr;
   }
 
-.forms-shell {
-  padding: 0.8rem;
-}
-
-.google-form-embed {
-  padding: 0;
-}
-
-.google-form-iframe {
-  display: block;
-  width: 100%;
-  border: 0;
-  border-radius: var(--radius-lg);
-}
+  .forms-shell {
+    padding: 0.8rem;
+  }
 
   .form-actions-row {
     align-items: start;
