@@ -1294,16 +1294,20 @@ body.js-ready .reveal-section.is-visible {
 }
 
 .form-panel.google-form-embed {
+  position: relative;
+  width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
   border-radius: 0;
+  overflow: hidden;
 }
 
 .google-form-iframe {
   display: block;
   width: 100%;
   border: 0;
+  transform-origin: 0 0;
 }
 
 .lead-form {

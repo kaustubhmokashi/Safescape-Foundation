@@ -646,6 +646,57 @@
     revealTargets.forEach((element) => observer.observe(element));
   }
 
+  function setupGoogleFormScaleToFit() {
+    const iframes = Array.from(
+      document.querySelectorAll(".google-form-iframe[data-base-width][data-base-height]")
+    );
+    if (!iframes.length) {
+      return;
+    }
+
+    // Without ResizeObserver we still apply once, but won't respond to resizes.
+    const hasResizeObserver = typeof window.ResizeObserver === "function";
+
+    iframes.forEach((iframe) => {
+      const wrapper = iframe.closest(".google-form-embed") || iframe.parentElement;
+      if (!wrapper) {
+        return;
+      }
+
+      const baseWidth = Number(iframe.dataset.baseWidth) || 640;
+      const baseHeight = Number(iframe.dataset.baseHeight) || 4076;
+
+      // Set the iframe to its native dimensions, then scale the whole document.
+      iframe.style.width = `${baseWidth}px`;
+      iframe.style.height = `${baseHeight}px`;
+      iframe.style.maxWidth = "none";
+      iframe.style.transform = "scale(1)";
+
+      function applyScale() {
+        const containerWidth = wrapper.clientWidth;
+        if (!containerWidth) {
+          return;
+        }
+
+        const rawScale = containerWidth / baseWidth;
+        // Clamp so text doesn't become unusably small/large.
+        const scale = Math.max(0.82, Math.min(rawScale, 1.7));
+
+        iframe.style.transform = `scale(${scale})`;
+        wrapper.style.height = `${Math.ceil(baseHeight * scale)}px`;
+      }
+
+      applyScale();
+
+      if (hasResizeObserver) {
+        const ro = new window.ResizeObserver(() => applyScale());
+        ro.observe(wrapper);
+      }
+
+      window.addEventListener("orientationchange", applyScale);
+    });
+  }
+
   renderPetCards();
   if (form && formFields) {
     activateForm(defaultFormType);
@@ -656,5 +707,6 @@
   setupRevealSections();
   setupCustomCursor();
   setupCursorStamping();
+  setupGoogleFormScaleToFit();
   renderInstagramFeed();
 })();
