@@ -31,44 +31,38 @@
         </div>
       </header>
 
-      <main class="form-page-layout form-page-main">
-        <section class="form-page-hero section">
-          <p class="eyebrow">Safescape Form</p>
-          <h1>Apply for Adoption</h1>
-          <p>
-            Tell Safescape about yourself, your home, and the buddy you hope to welcome. This helps the team review
+	      <main class="form-page-layout form-page-main">
+	        <section class="form-page-hero section">
+	          <p class="eyebrow">Safescape Form</p>
+	          <h1>Apply for Adoption</h1>
+	          <p>
+	            Tell Safescape about yourself, your home, and the buddy you hope to welcome. This helps the team review
             adoption requests thoughtfully and follow up with the right next steps.
           </p>
           <p class="form-page-note">Your response will go directly to the Safescape team through this new digital home.</p>
           <a class="button button-secondary" href="index.html#pillars">Back to home</a>
-        </section>
+	        </section>
 
-        <section class="form-page-panel section">
-          <div class="form-panel">
-            <div class="form-panel-header">
-              <h3 id="form-title">Apply for Adoption</h3>
-              <p id="form-description">Tell Safescape about yourself and the buddy you hope to bring home.</p>
-            </div>
+	        <section class="form-page-panel section">
+	          <div class="form-panel google-form-embed" aria-label="Apply for adoption form">
+	            <iframe
+	              class="google-form-iframe"
+	              src="https://docs.google.com/forms/d/e/1FAIpQLSfm26C44BQPfericSev3O6HSU2af-c8IyISVUVKld9X_GUfrg/viewform?embedded=true"
+	              width="640"
+	              height="4076"
+	              frameborder="0"
+	              marginheight="0"
+	              marginwidth="0"
+	              title="Apply for Pet Adoption"
+	            >
+	              Loading…
+	            </iframe>
+	          </div>
+	        </section>
+	      </main>
+	    </div>
 
-            <form id="lead-form" class="lead-form" method="POST" target="submission-frame" novalidate>
-              <input type="hidden" name="formType" id="form-type" value="adoption" />
-              <input type="hidden" name="submittedAt" id="submitted-at" value="" />
-              <input type="hidden" name="sourcePage" value="apply-for-adoption" />
-              <div id="form-fields" class="form-fields"></div>
-              <div class="form-actions-row">
-                <button id="submit-button" class="button button-primary" type="submit">Submit adoption application</button>
-                <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
-              </div>
-            </form>
-          </div>
-
-          <iframe name="submission-frame" title="Hidden form submission target" class="submission-frame"></iframe>
-        </section>
-      </main>
-    </div>
-
-    <script src="js/site-config.js"></script>
-    <script src="js/site-data.js"></script>
-    <script src="js/main.js"></script>
-  </body>
-</html>
+	    <script src="js/site-config.js"></script>
+	    <script src="js/main.js"></script>
+	  </body>
+	</html>

@@ -252,10 +252,13 @@ button {
 
 .site-header.is-scrolled {
   padding: 0.9rem 1rem;
-  border-color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(18px);
-  background: rgba(245, 237, 222, 0.9);
-  box-shadow: 0 14px 40px rgba(46, 58, 20, 0.08);
+  border-color: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(22px);
+  /* Glassy blur without an obvious "fill" tint. */
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 22px 70px rgba(46, 58, 20, 0.16),
+    0 10px 26px rgba(46, 58, 20, 0.08);
 }
 
 .brand {
@@ -293,12 +296,11 @@ button {
   line-height: 1;
   background: transparent;
   box-shadow: none;
-  transition: transform 0.18s ease, color 0.18s ease;
+  transition: color 0.18s ease;
   white-space: nowrap;
 }
 
 .instagram-link:hover {
-  transform: translateY(-1px);
   color: rgba(62, 89, 16, 0.72);
   text-decoration: underline;
   text-underline-offset: 0.16em;
@@ -327,21 +329,20 @@ button {
   margin-top: 0;
 }
 
-.cta-row .button {
-  height: 3.05rem;
-  padding-block: 0;
-}
-
 .cta-row .instagram-link {
-  height: 3.05rem;
-  padding: 0;
-  line-height: 1;
-  align-self: auto;
+  /* Match the primary button's vertical rhythm for perfect center alignment. */
+  padding: 0.95rem 0;
+  transform: translateY(2px);
 }
 
 .cta-row .instagram-link-icon {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+.cta-row .instagram-link:hover {
+  /* Keep alignment stable on hover. */
+  transform: translateY(2px);
 }
 
 .site-footer a {
@@ -1856,9 +1857,20 @@ a.footer-donate-button:hover {
     grid-template-columns: 1fr;
   }
 
-  .forms-shell {
-    padding: 0.8rem;
-  }
+.forms-shell {
+  padding: 0.8rem;
+}
+
+.google-form-embed {
+  padding: 0;
+}
+
+.google-form-iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-lg);
+}
 
   .form-actions-row {
     align-items: start;

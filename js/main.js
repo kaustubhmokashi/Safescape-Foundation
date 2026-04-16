@@ -647,7 +647,9 @@
   }
 
   renderPetCards();
-  activateForm(defaultFormType);
+  if (form && formFields) {
+    activateForm(defaultFormType);
+  }
   bindEvents();
   syncHeaderState();
   window.addEventListener("scroll", syncHeaderState, { passive: true });
