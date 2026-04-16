@@ -176,6 +176,15 @@
         option.textContent = optionValue;
         input.appendChild(option);
       });
+    } else if (field.type === "file") {
+      input = document.createElement("input");
+      input.type = "file";
+      if (field.accept) {
+        input.accept = field.accept;
+      }
+      if (field.multiple) {
+        input.multiple = true;
+      }
     } else {
       input = document.createElement("input");
       input.type = field.type;
@@ -185,9 +194,16 @@
     input.name = field.name;
     input.required = Boolean(field.required);
     input.autocomplete = "off";
+    input.dataset.q = field.label;
 
     if (field.type !== "select") {
       input.placeholder = field.label;
+    }
+
+    if (field.type === "file") {
+      input.placeholder = "";
+      input.removeAttribute("placeholder");
+      input.dataset.maxMb = String(field.maxMb || 10);
     }
 
     if (prefill && prefill[field.name]) {
@@ -195,7 +211,66 @@
     }
 
     wrapper.append(label, input);
+    if (field.help) {
+      const hint = document.createElement("div");
+      hint.className = "form-field-hint";
+      hint.textContent = field.help;
+      wrapper.appendChild(hint);
+    }
     return wrapper;
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Unable to read the selected file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function collectSheetSubmissionData(formEl) {
+    const questionNodes = Array.from(formEl.querySelectorAll("[data-q]"));
+    const questionOrder = [];
+    const responses = {};
+    const uploads = [];
+
+    for (const node of questionNodes) {
+      const title = node.dataset.q;
+      if (!title) {
+        continue;
+      }
+
+      questionOrder.push(title);
+
+      if (node.classList.contains("choice-grid")) {
+        const { value } = collectChoiceGridValue(node);
+        responses[title] = value;
+        continue;
+      }
+
+      if (node instanceof HTMLInputElement && node.type === "file") {
+        const file = node.files && node.files[0];
+        responses[title] = file ? file.name : "";
+        if (file) {
+          uploads.push({
+            question: title,
+            fieldName: node.name || node.id || "",
+            fileName: file.name,
+            mimeType: file.type || "application/octet-stream",
+            size: file.size || 0,
+            dataUrl: await readFileAsDataUrl(file),
+          });
+        }
+        continue;
+      }
+
+      if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) {
+        responses[title] = normalizeValue(node.value);
+      }
+    }
+
+    return { questionOrder, responses, uploads };
   }
 
   function activateForm(formType, options) {
@@ -393,6 +468,21 @@
   function validateTextLikeControl(control) {
     const container = getFieldContainer(control);
     const value = normalizeValue(control.value);
+
+    if (control instanceof HTMLInputElement && control.type === "file") {
+      const file = control.files && control.files[0];
+      const maxMb = Number(control.dataset.maxMb || 10);
+      if (control.required && !file) {
+        setFieldError(container, "Please attach a file.");
+        return false;
+      }
+      if (file && maxMb > 0 && file.size > maxMb * 1024 * 1024) {
+        setFieldError(container, `Please choose a file smaller than ${maxMb} MB.`);
+        return false;
+      }
+      setFieldError(container, "");
+      return true;
+    }
 
     if (control.required && !value) {
       setFieldError(container, "This is a required question.");
@@ -679,43 +769,19 @@
       return;
     }
 
-    const questionNodes = Array.from(formEl.querySelectorAll("[data-q]"));
-    const questionOrder = questionNodes.map((node) => node.dataset.q);
-    const responses = {};
-    let firstMissing = null;
-
-    questionNodes.forEach((node) => {
-      const title = node.dataset.q;
-      if (!title) {
-        return;
-      }
-
-      if (node.classList.contains("choice-grid")) {
-        const { value, requiredOk } = collectChoiceGridValue(node);
-        responses[title] = value;
-        if (!requiredOk && !firstMissing) {
-          firstMissing = node;
-        }
-        return;
-      }
-
-      if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) {
-        const value = normalizeValue(node.value);
-        responses[title] = value;
-        if (node.required && !value && !firstMissing) {
-          firstMissing = node;
-        }
-      }
-    });
-
-    setSheetStatus("Sending your response to the Safescape team…", "success");
+    const { questionOrder, responses, uploads } = await collectSheetSubmissionData(formEl);
+    setSheetStatus(
+      uploads.length ? "Uploading your file and sending your response…" : "Sending your response to the Safescape team…",
+      "success"
+    );
 
     try {
       const payload = new URLSearchParams({
         formType: getSheetFormType(formEl),
         sheetName: formEl.dataset.sheetName || "",
         questionOrder: JSON.stringify(questionOrder),
-        responses: JSON.stringify(responses)
+        responses: JSON.stringify(responses),
+        uploads: JSON.stringify(uploads)
       });
 
       await fetch(webAppUrl, {
@@ -826,35 +892,19 @@
       return { ok: false, error: "missing_config" };
     }
 
-    const questionNodes = Array.from(formEl.querySelectorAll("[data-q]"));
-    const questionOrder = questionNodes.map((node) => node.dataset.q);
-    const responses = {};
-
-    questionNodes.forEach((node) => {
-      const title = node.dataset.q;
-      if (!title) {
-        return;
-      }
-
-      if (node.classList.contains("choice-grid")) {
-        const { value } = collectChoiceGridValue(node);
-        responses[title] = value;
-        return;
-      }
-
-      if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) {
-        responses[title] = normalizeValue(node.value);
-      }
-    });
-
-    setStatus("Sending your response to the Safescape team…", "success");
+    const { questionOrder, responses, uploads } = await collectSheetSubmissionData(formEl);
+    setStatus(
+      uploads.length ? "Uploading your file and sending your response…" : "Sending your response to the Safescape team…",
+      "success"
+    );
 
     try {
       const payload = new URLSearchParams({
         formType: getSheetFormType(formEl),
         sheetName: formEl.dataset.sheetName || "",
         questionOrder: JSON.stringify(questionOrder),
-        responses: JSON.stringify(responses)
+        responses: JSON.stringify(responses),
+        uploads: JSON.stringify(uploads)
       });
 
       await fetch(webAppUrl, {

@@ -162,6 +162,14 @@ window.SAFESCAPE_SITE_DATA = {
         { name: "phone", label: "Phone number", type: "tel", required: true },
         { name: "city", label: "City", type: "text", required: true },
         {
+          name: "fosterFile",
+          label: "Upload a supporting file",
+          type: "file",
+          required: true,
+          accept: ".pdf,.jpg,.jpeg,.png",
+          help: "PDF, JPG, or PNG up to 10 MB."
+        },
+        {
           name: "homeType",
           label: "Home type",
           type: "select",

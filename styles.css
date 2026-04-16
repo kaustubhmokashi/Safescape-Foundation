@@ -1418,6 +1418,22 @@ body.js-ready .reveal-section.is-visible {
   margin-top: 0.25rem;
 }
 
+.form-field input[type="file"] {
+  padding: 0.72rem 1rem;
+  min-height: 3rem;
+}
+
+.form-field input[type="file"]::file-selector-button {
+  margin-right: 0.9rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(62, 89, 16, 0.16);
+  border-radius: 999px;
+  background: rgba(62, 89, 16, 0.08);
+  color: var(--brand-deep);
+  font: inherit;
+  font-weight: 700;
+}
+
 fieldset.form-field {
   margin: 0;
   padding: 1.1rem 1.1rem;
@@ -1458,6 +1474,13 @@ fieldset.form-field {
   color: #c02b2b;
   font-size: 0.9rem;
   line-height: 1.35;
+}
+
+.form-field-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-top: -0.1rem;
 }
 
 .rpp-box {

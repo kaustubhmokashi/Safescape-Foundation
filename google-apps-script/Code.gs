@@ -18,6 +18,12 @@ const FORM_DESTINATIONS = {
 };
 
 const DEFAULT_NOTIFICATION_RECIPIENT = "contact@safescapefoundation.com";
+const DEFAULT_FOSTER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const FOSTER_UPLOAD_FOLDER_PROPERTY_KEYS = [
+  "FOSTER_UPLOAD_FOLDER_ID",
+  "UPLOAD_FOLDER_FOSTER",
+  "UPLOAD_FOLDER_ID_FOSTER"
+];
 
 function doPost(e) {
   const payload = parsePayload(e);
@@ -35,11 +41,14 @@ function doPost(e) {
   // "responses" keys are the sheet headers, and must match the exact form question titles.
   const responses = payload.responses || {};
   const questionOrder = Array.isArray(payload.questionOrder) ? payload.questionOrder : Object.keys(responses);
+  const uploads = Array.isArray(payload.uploads) ? payload.uploads : [];
   const headers = questionOrder.map(String).filter(Boolean);
 
   if (!headers.length) {
     return outputJson({ ok: false, error: "No questions were provided." });
   }
+
+  processUploadsForSubmission_(formType, destination.spreadsheetId, responses, uploads);
 
   const finalHeaders = ensureHeaders(sheet, headers);
   const row = finalHeaders.map((header) => formatCellValue(responses[header]));
@@ -81,7 +90,127 @@ function parsePayload(e) {
       payload.questionOrder = [];
     }
   }
+  if (payload.uploads && typeof payload.uploads === "string") {
+    try {
+      payload.uploads = JSON.parse(payload.uploads);
+    } catch (error) {
+      payload.uploads = [];
+    }
+  }
   return payload;
+}
+
+function processUploadsForSubmission_(formType, spreadsheetId, responses, uploads) {
+  var uploadList = normalizeUploads_(uploads);
+  var folder;
+  var createdFiles = [];
+  var index;
+
+  if (!uploadList.length) {
+    return createdFiles;
+  }
+
+  folder = resolveUploadFolder_(spreadsheetId, formType);
+
+  for (index = 0; index < uploadList.length; index += 1) {
+    createdFiles.push(createUploadFile_(folder, uploadList[index]));
+  }
+
+  createdFiles.forEach(function(fileMeta) {
+    if (!fileMeta || !fileMeta.question) {
+      return;
+    }
+
+    responses[fileMeta.question] = fileMeta.url;
+  });
+
+  return createdFiles;
+}
+
+function normalizeUploads_(uploads) {
+  if (!Array.isArray(uploads)) {
+    return [];
+  }
+
+  return uploads
+    .map(function(upload) {
+      return upload && typeof upload === "object" ? upload : null;
+    })
+    .filter(Boolean);
+}
+
+function resolveUploadFolder_(spreadsheetId, formType) {
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var folderId = "";
+  var index;
+
+  if (String(formType || "").trim().toLowerCase() === "foster") {
+    for (index = 0; index < FOSTER_UPLOAD_FOLDER_PROPERTY_KEYS.length; index += 1) {
+      folderId = String(scriptProperties.getProperty(FOSTER_UPLOAD_FOLDER_PROPERTY_KEYS[index]) || "").trim();
+      if (folderId) {
+        return DriveApp.getFolderById(folderId);
+      }
+    }
+  }
+
+  try {
+    var spreadsheetFile = DriveApp.getFileById(spreadsheetId);
+    var parents = spreadsheetFile.getParents();
+    if (parents.hasNext()) {
+      return parents.next();
+    }
+  } catch (error) {
+    // fall back to the root folder below
+  }
+
+  return DriveApp.getRootFolder();
+}
+
+function createUploadFile_(folder, upload) {
+  var fileName = sanitizeFileName_(String(upload.fileName || upload.fieldName || upload.question || "upload"));
+  var parsed = parseDataUrl_(String(upload.dataUrl || ""));
+  var mimeType = String(upload.mimeType || parsed.mimeType || "application/octet-stream").trim() || "application/octet-stream";
+  var size = Number(upload.size || 0);
+
+  if (size && size > DEFAULT_FOSTER_UPLOAD_MAX_BYTES) {
+    throw new Error("Please choose a file smaller than 10 MB.");
+  }
+
+  if (parsed.bytes.length > DEFAULT_FOSTER_UPLOAD_MAX_BYTES) {
+    throw new Error("Please choose a file smaller than 10 MB.");
+  }
+
+  var blob = Utilities.newBlob(parsed.bytes, mimeType, fileName);
+  var file = folder.createFile(blob);
+
+  return {
+    question: String(upload.question || ""),
+    fieldName: String(upload.fieldName || ""),
+    fileName: fileName,
+    fileId: file.getId(),
+    url: file.getUrl(),
+    mimeType: mimeType,
+  };
+}
+
+function parseDataUrl_(dataUrl) {
+  var match = /^data:([^;]+);base64,(.+)$/i.exec(String(dataUrl || ""));
+  if (!match) {
+    throw new Error("The uploaded file could not be read.");
+  }
+
+  return {
+    mimeType: match[1],
+    bytes: Utilities.base64Decode(match[2]),
+  };
+}
+
+function sanitizeFileName_(value) {
+  return String(value || "upload")
+    .replace(/[\\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120) || "upload";
 }
 
 function getOrCreateSheet(spreadsheetId, sheetName) {
