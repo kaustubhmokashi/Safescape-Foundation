@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document Merge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --surface: #ffffff;
+        --surface-soft: #f7f7f5;
+        --line: #e7e6e2;
+        --text: #262624;
+        --muted: #7a7a73;
+        --accent: #2f6feb;
+        --accent-soft: #edf3ff;
+        --error-bg: #fff1ef;
+        --error-text: #8a2d21;
+        --success-bg: #eef8f1;
+        --success-text: #205939;
+        --radius: 14px;
+        --radius-sm: 10px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 12px/1.5 "Inter", sans-serif;
+      }
+
+      .app {
+        padding: 10px;
+      }
+
+      .shell {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .hero {
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin-bottom: 8px;
+        color: var(--muted);
+        font: 500 10px/1.2 "IBM Plex Mono", monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      .hero p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .content {
+        padding: 10px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 12px;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .section-index {
+        color: var(--muted);
+        font: 500 10px/1.2 "IBM Plex Mono", monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .section h2 {
+        margin: 2px 0 0;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      .subtle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      .trigger-status {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: var(--surface-soft);
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .trigger-status-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .trigger-status-row span {
+        color: var(--muted);
+        font: 500 10px/1.2 "IBM Plex Mono", monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .trigger-status-row strong {
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.4;
+        text-align: right;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      .trigger-status-note {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      .queued-rows {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .queued-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--line);
+        font-size: 11px;
+        color: var(--text);
+      }
+
+      .queued-empty {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      .grid {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .grid.two {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .label {
+        color: var(--muted);
+        font: 500 10px/1.2 "IBM Plex Mono", monospace;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .value {
+        color: var(--text);
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+
+      input, select, textarea, button {
+        width: 100%;
+        font: inherit;
+      }
+
+      input, select, textarea {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        padding: 9px 10px;
+        color: var(--text);
+      }
+
+      input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #bfd0ff;
+        box-shadow: 0 0 0 3px rgba(47, 111, 235, 0.08);
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        background: var(--text);
+        color: #fff;
+        padding: 9px 10px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      button.secondary {
+        background: var(--surface-soft);
+        color: var(--text);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .chips,
+      .scroll-panel {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface-soft);
+      }
+
+      .chips {
+        padding: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--line);
+        font-size: 11px;
+      }
+
+      .chip.good {
+        background: var(--accent-soft);
+        border-color: #cbdafc;
+      }
+
+      .scroll-panel {
+        max-height: 170px;
+        overflow: auto;
+        padding: 4px;
+      }
+
+      .mapping-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px;
+        border-radius: 8px;
+      }
+
+      .mapping-row + .mapping-row {
+        border-top: 1px solid var(--line);
+      }
+
+      .mapping-tag {
+        font: 500 11px/1.4 "IBM Plex Mono", monospace;
+      }
+
+      .notice,
+      .banner {
+        border-radius: 10px;
+        padding: 9px 10px;
+        font-size: 12px;
+      }
+
+      .notice {
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .banner {
+        border: 1px solid transparent;
+      }
+
+      .banner.success {
+        background: var(--success-bg);
+        color: var(--success-text);
+        border-color: #d5eadc;
+      }
+
+      .banner.error {
+        background: var(--error-bg);
+        color: var(--error-text);
+        border-color: #f2d3cd;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .folder-box {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface-soft);
+        padding: 9px 10px;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .folder-picker {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(24, 28, 25, 0.18);
+      }
+
+      .folder-picker.open {
+        display: flex;
+      }
+
+      .folder-picker-card {
+        width: 100%;
+        max-width: 560px;
+        max-height: 80vh;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      .editor-preview {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface-soft);
+        padding: 10px;
+        min-height: 84px;
+        word-break: break-word;
+      }
+
+      .folder-picker-head {
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .breadcrumbs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .crumb {
+        width: auto;
+        padding: 6px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+
+      .folder-list {
+        max-height: 44vh;
+        overflow: auto;
+        padding: 10px 14px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .folder-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface-soft);
+      }
+
+      .footer-actions {
+        display: grid;
+        gap: 8px;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      @media (min-width: 720px) {
+        .mapping-row {
+          grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+          align-items: center;
+        }
+      }
+
+      @media (min-width: 520px) {
+        .grid.two {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .button-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .folder-row {
+          grid-template-columns: minmax(0, 1fr) 98px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="shell">
+        <div class="hero">
+          <div class="eyebrow">Sheets Extension</div>
+          <h1>Document Merge</h1>
+          <p>Connect the active response tab to a template, confirm mappings, store PDFs in Drive, and send them automatically.</p>
+        </div>
+
+        <div class="content">
+          <div id="status-banner" class="banner hidden"></div>
+
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <div class="section-index">01 Current Sheet</div>
+                <h2>Detected from the active tab</h2>
+              </div>
+            </div>
+            <div class="grid two">
+              <div class="field">
+                <div class="label">Spreadsheet</div>
+                <div id="spreadsheet-name" class="value"></div>
+              </div>
+              <div class="field">
+                <div class="label">Active Tab</div>
+                <div id="sheet-name" class="value"></div>
+              </div>
+              <div class="field">
+                <div class="label">Rows Available</div>
+                <div id="row-count" class="value"></div>
+              </div>
+              <div class="field">
+                <div class="label">Connected Form</div>
+                <div id="form-link" class="value"></div>
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <div class="label">Headers</div>
+              <div id="header-chips" class="chips"></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <div class="section-index">02 Template</div>
+                <h2>Load your Google Docs or Slides template</h2>
+              </div>
+            </div>
+            <div class="field">
+              <label class="label" for="template-url">Template URL</label>
+              <input id="template-url" type="url" placeholder="https://docs.google.com/document/d/... or https://docs.google.com/presentation/d/..." />
+            </div>
+            <p class="subtle" style="margin-top:8px;">For image placeholders, put the tag on its own line in the Google Doc for the cleanest result.</p>
+            <div class="button-row" style="margin-top:10px;">
+              <button id="inspect-template-button" type="button" class="secondary">Load Tags</button>
+              <button id="refresh-button" type="button" class="secondary">Refresh Sheet</button>
+            </div>
+            <div id="template-summary" class="hidden" style="margin-top:10px;">
+              <div class="grid two">
+                <div class="field">
+                  <div class="label">Template Name</div>
+                  <div id="template-name" class="value"></div>
+                </div>
+                <div class="field">
+                  <div class="label">Tag Count</div>
+                  <div id="template-count" class="value"></div>
+                </div>
+              </div>
+              <div class="field" style="margin-top:10px;">
+                <div class="label">Detected Tags</div>
+                <div id="template-tags" class="scroll-panel"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <div class="section-index">03 Mapping</div>
+                <h2>Confirm each match</h2>
+              </div>
+            </div>
+            <div id="mapping-note" class="notice">Load a template first to generate the mapping list.</div>
+            <div id="mapping-rows" class="scroll-panel hidden"></div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <div class="section-index">04 Trigger</div>
+                <h2>Choose when it should run</h2>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="field">
+                <label class="label" for="trigger-mode">Trigger Type</label>
+                <select id="trigger-mode">
+                  <option value="FORM_SUBMIT">For every new form entry</option>
+                  <option value="TIME">Time based</option>
+                </select>
+              </div>
+              <div id="time-settings" class="grid hidden">
+                <div class="grid two">
+                  <div class="field">
+                    <label class="label" for="schedule-type">Schedule</label>
+                    <select id="schedule-type">
+                      <option value="MINUTE">Every Minute</option>
+                      <option value="DAILY">Daily</option>
+                      <option value="WEEKLY">Weekly</option>
+                      <option value="HOURLY">Hourly</option>
+                    </select>
+                  </div>
+                  <div class="field" id="hourly-group">
+                    <label class="label" for="hourly-interval">Every How Many Hours</label>
+                    <select id="hourly-interval">
+                      <option value="1">1 hour</option>
+                      <option value="2">2 hours</option>
+                      <option value="4">4 hours</option>
+                      <option value="6">6 hours</option>
+                      <option value="12">12 hours</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid two">
+                  <div class="field" id="daily-group">
+                    <label class="label" for="daily-hour">Daily At Hour</label>
+                    <select id="daily-hour"></select>
+                  </div>
+                  <div class="field" id="weekly-day-group">
+                    <label class="label" for="weekly-day">Weekly Day</label>
+                    <select id="weekly-day">
+                      <option value="MONDAY">Monday</option>
+                      <option value="TUESDAY">Tuesday</option>
+                      <option value="WEDNESDAY">Wednesday</option>
+                      <option value="THURSDAY">Thursday</option>
+                      <option value="FRIDAY">Friday</option>
+                      <option value="SATURDAY">Saturday</option>
+                      <option value="SUNDAY">Sunday</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field hidden" id="weekly-hour-group">
+                  <label class="label" for="weekly-hour">Weekly At Hour</label>
+                  <select id="weekly-hour"></select>
+                </div>
+              </div>
+              <div id="trigger-status" class="trigger-status">
+                <div class="trigger-status-row">
+                  <span>Mode</span>
+                  <strong id="trigger-status-mode">Form submit</strong>
+                </div>
+                <div class="trigger-status-row">
+                  <span>Schedule</span>
+                  <strong id="trigger-status-schedule">Not applicable</strong>
+                </div>
+                <div class="trigger-status-row">
+                  <span>Last run</span>
+                  <strong id="trigger-status-last-run">Not run yet</strong>
+                </div>
+                <div class="trigger-status-row">
+                  <span>Next run</span>
+                  <strong id="trigger-status-next-run">Not applicable</strong>
+                </div>
+                <div id="trigger-status-note" class="trigger-status-note">Save the configuration to create or refresh the trigger for this spreadsheet.</div>
+                <div>
+                  <div class="trigger-status-row" style="margin-bottom:6px;">
+                    <span>Rows to process</span>
+                    <strong id="queued-rows-count">No rows to process</strong>
+                  </div>
+                  <div id="queued-rows" class="queued-rows"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <div class="section-index">05 Delivery</div>
+                <h2>Email and storage</h2>
+              </div>
+            </div>
+            <div class="notice">You can type a normal email address directly, or use placeholders like <code>{{Email}}</code>. If a mapped field comes from a Form file upload and contains images, those images can also be inserted into matching template tags.</div>
+            <div class="grid" style="margin-top:10px;">
+              <div class="field">
+                <label class="label" for="email-to">Email To</label>
+                <input id="email-to" type="text" placeholder="name@example.com or {{Email}}" />
+              </div>
+              <div class="grid two">
+                <div class="field">
+                  <label class="label" for="email-cc">CC</label>
+                  <input id="email-cc" type="text" placeholder="optional" />
+                </div>
+                <div class="field">
+                  <label class="label" for="email-bcc">BCC</label>
+                  <input id="email-bcc" type="text" placeholder="optional" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label" for="sender-name">Sender Name</label>
+                <input id="sender-name" type="text" placeholder="Document Merge" />
+              </div>
+              <div class="field">
+                <label class="label" for="email-subject">Email Subject</label>
+                <input id="email-subject" type="text" placeholder="Your PDF for {{Name}}" />
+              </div>
+              <div class="field">
+                <div class="label">Email Body</div>
+                <div id="email-body-preview" class="editor-preview"></div>
+                <button id="open-email-editor-button" type="button" class="secondary">Open WYSIWYG Editor</button>
+              </div>
+              <div class="field">
+                <div class="label">PDF Storage Folder</div>
+                <div class="folder-box">
+                  <div id="folder-name-display" class="value">No folder selected</div>
+                  <div id="folder-url-display" class="subtle" style="margin-top:4px;">Choose where generated PDFs should be stored.</div>
+                </div>
+                <button id="choose-folder-button" type="button" class="secondary" style="margin-top:8px;">Choose Drive Folder</button>
+              </div>
+              <div class="field">
+                <label class="label" for="file-name-pattern">PDF File Name Pattern</label>
+                <input id="file-name-pattern" type="text" placeholder="{{Name}}_{{rowNumber}}" />
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <div class="section-index">06 Launch</div>
+                <h2>Save and test</h2>
+              </div>
+            </div>
+            <p class="subtle">Saving updates the trigger for this spreadsheet. Use the manual actions below to test a response immediately.</p>
+            <div class="footer-actions" style="margin-top:10px;">
+              <button id="save-button" type="button">Save Configuration</button>
+              <button id="run-selected-button" type="button" class="secondary">Save + Run Selected Row</button>
+              <button id="run-latest-button" type="button" class="secondary">Save + Run Latest Unprocessed Row</button>
+              <button id="run-all-button" type="button" class="secondary">Save + Run All Rows</button>
+            </div>
+            <div id="result-box" class="hidden banner success" style="margin-top:10px;"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="folder-picker" class="folder-picker">
+      <div class="folder-picker-card">
+        <div class="folder-picker-head">
+          <div class="section-index">Choose Folder</div>
+          <h2 style="margin:4px 0 0; font-size:14px;">Select a Drive folder</h2>
+          <div id="folder-breadcrumbs" class="breadcrumbs"></div>
+        </div>
+        <div id="folder-list" class="folder-list"></div>
+        <div style="padding: 0 14px 14px;">
+          <button id="close-folder-picker-button" type="button" class="secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const state = {
+        spreadsheet: null,
+        sheet: null,
+        template: null,
+        config: null,
+        suggestedMappings: {},
+        queuedRows: [],
+        busy: false,
+        selectedFolder: null,
+        folderPicker: null,
+        emailEditorHtml: "",
+        emailDraftPollId: null,
+        emailDraftUpdatedAt: "",
+      };
+
+      function callServer(method, ...args) {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler((error) => reject(new Error(error && error.message ? error.message : String(error))))
+            [method](...args);
+        });
+      }
+
+      function setBusy(flag) {
+        state.busy = flag;
+        document.querySelectorAll("button").forEach((button) => {
+          button.disabled = flag;
+        });
+      }
+
+      function setBanner(message, type) {
+        const node = document.getElementById("status-banner");
+        if (!message) {
+          node.className = "banner hidden";
+          node.textContent = "";
+          return;
+        }
+        node.className = `banner ${type || "success"}`;
+        node.textContent = message;
+      }
+
+      function fillHourOptions(selectId) {
+        const select = document.getElementById(selectId);
+        let html = "";
+        for (let hour = 0; hour < 24; hour += 1) {
+          const label = `${String(hour).padStart(2, "0")}:00`;
+          html += `<option value="${hour}">${label}</option>`;
+        }
+        select.innerHTML = html;
+      }
+
+      function renderContext() {
+        document.getElementById("spreadsheet-name").textContent = state.spreadsheet.name;
+        document.getElementById("sheet-name").textContent = state.sheet.name;
+        document.getElementById("row-count").textContent = String(state.sheet.rowCount);
+        document.getElementById("form-link").innerHTML = state.spreadsheet.formUrl
+          ? `<a href="${state.spreadsheet.formUrl}" target="_blank">Open linked form</a>`
+          : "No linked form detected";
+
+        document.getElementById("header-chips").innerHTML = state.sheet.headers.length
+          ? state.sheet.headers.map((header) => `<span class="chip">${escapeHtml(header)}</span>`).join("")
+          : `<span class="chip">No headers found</span>`;
+      }
+
+      function renderTemplate() {
+        const summary = document.getElementById("template-summary");
+        const tagBox = document.getElementById("template-tags");
+
+        if (!state.template) {
+          summary.classList.add("hidden");
+          tagBox.innerHTML = "";
+          document.getElementById("mapping-note").classList.remove("hidden");
+          document.getElementById("mapping-rows").classList.add("hidden");
+          return;
+        }
+
+        summary.classList.remove("hidden");
+        document.getElementById("template-name").textContent = state.template.documentName;
+        document.getElementById("template-count").textContent = String(state.template.tags.length);
+        tagBox.innerHTML = state.template.tags
+          .map((tag) => `<div class="chip good">{{${escapeHtml(tag)}}}</div>`)
+          .join("");
+
+        renderMappings();
+      }
+
+      function renderMappings() {
+        const container = document.getElementById("mapping-rows");
+        if (!state.template || !state.template.tags.length) {
+          document.getElementById("mapping-note").classList.remove("hidden");
+          container.classList.add("hidden");
+          container.innerHTML = "";
+          return;
+        }
+
+        const mappings = state.config.mappings || {};
+        container.innerHTML = state.template.tags.map((tag) => {
+          const selected = mappings[tag] || state.suggestedMappings[tag] || "";
+          const options = ['<option value="">Select a sheet header</option>']
+            .concat(state.sheet.headers.map((header) => {
+              const isSelected = selected === header ? ' selected' : '';
+              return `<option value="${escapeAttribute(header)}"${isSelected}>${escapeHtml(header)}</option>`;
+            }))
+            .join("");
+
+          return `
+            <div class="mapping-row">
+              <div class="mapping-tag">{{${escapeHtml(tag)}}}</div>
+              <select data-tag="${escapeAttribute(tag)}">${options}</select>
+            </div>
+          `;
+        }).join("");
+
+        document.getElementById("mapping-note").classList.add("hidden");
+        container.classList.remove("hidden");
+      }
+
+      function renderTriggerState() {
+        const isTime = document.getElementById("trigger-mode").value === "TIME";
+        const scheduleType = document.getElementById("schedule-type").value;
+
+        document.getElementById("time-settings").classList.toggle("hidden", !isTime);
+        document.getElementById("hourly-group").classList.toggle("hidden", scheduleType !== "HOURLY");
+        document.getElementById("daily-group").classList.toggle("hidden", scheduleType !== "DAILY");
+        document.getElementById("weekly-day-group").classList.toggle("hidden", scheduleType !== "WEEKLY");
+        document.getElementById("weekly-hour-group").classList.toggle("hidden", scheduleType !== "WEEKLY");
+        renderTriggerStatus();
+      }
+
+      function formatKolkataDate(value) {
+        if (!value) {
+          return "";
+        }
+
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return "";
+        }
+
+        try {
+          return new Intl.DateTimeFormat("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Kolkata",
+          }).format(date);
+        } catch (error) {
+          return date.toLocaleString();
+        }
+      }
+
+      function getScheduleEstimateMs(trigger) {
+        const scheduleType = (trigger && trigger.scheduleType) || "DAILY";
+        const hourlyInterval = Math.max(1, Number((trigger && trigger.hourlyInterval) || 1));
+
+        if (scheduleType === "MINUTE") {
+          return 60 * 1000;
+        }
+
+        if (scheduleType === "HOURLY") {
+          return hourlyInterval * 60 * 60 * 1000;
+        }
+
+        if (scheduleType === "WEEKLY") {
+          return 7 * 24 * 60 * 60 * 1000;
+        }
+
+        return 24 * 60 * 60 * 1000;
+      }
+
+      function renderTriggerStatus() {
+        const trigger = (state.config && state.config.trigger) || {};
+        const mode = document.getElementById("trigger-mode").value || trigger.mode || "FORM_SUBMIT";
+        const scheduleType = document.getElementById("schedule-type").value || trigger.scheduleType || "DAILY";
+        const lastRunAt = trigger.lastRunAt ? new Date(trigger.lastRunAt) : null;
+        const nextRunAt = new Date((lastRunAt && !Number.isNaN(lastRunAt.getTime()) ? lastRunAt : new Date()).getTime() + getScheduleEstimateMs(trigger));
+        const isTime = mode === "TIME";
+
+        document.getElementById("trigger-status-mode").textContent = isTime ? "Time based" : "Form submit";
+        document.getElementById("trigger-status-schedule").textContent = isTime ? (
+          scheduleType === "MINUTE" ? "Every Minute" :
+          scheduleType === "HOURLY" ? `Every ${Math.max(1, Number(trigger.hourlyInterval || 1))} hour(s)` :
+          scheduleType === "WEEKLY" ? `Weekly on ${trigger.weeklyDay || "Monday"}` :
+          "Daily"
+        ) : "Not applicable";
+        document.getElementById("trigger-status-last-run").textContent = lastRunAt && !Number.isNaN(lastRunAt.getTime())
+          ? formatKolkataDate(lastRunAt)
+          : (isTime ? "Not run yet" : "Not applicable");
+        document.getElementById("trigger-status-next-run").textContent = isTime
+          ? `${formatKolkataDate(nextRunAt)} (estimate)`
+          : "Not applicable";
+        document.getElementById("trigger-status-note").textContent = isTime
+          ? "This is an estimate. Apps Script time triggers can run a little early or late."
+          : "Save the configuration to create or refresh the trigger for this spreadsheet.";
+        renderQueuedRows();
+      }
+
+      function renderQueuedRows() {
+        const rows = Array.isArray(state.queuedRows) ? state.queuedRows : [];
+        const countNode = document.getElementById("queued-rows-count");
+        const listNode = document.getElementById("queued-rows");
+
+        if (!rows.length) {
+          countNode.textContent = "No rows to process";
+          listNode.innerHTML = `<div class="queued-empty">No rows to process</div>`;
+          return;
+        }
+
+        countNode.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} queued`;
+        listNode.innerHTML = rows.map((row) => {
+          const rowNumber = Number(row.rowNumber || 0);
+          const sheetName = row.sheetName ? ` • ${escapeHtml(row.sheetName)}` : "";
+          return `<div class="queued-row">Row ${escapeHtml(String(rowNumber))}${sheetName}</div>`;
+        }).join("");
+      }
+
+      function renderSelectedFolder() {
+        const folder = state.selectedFolder;
+        document.getElementById("folder-name-display").textContent = folder ? folder.name : "No folder selected";
+        document.getElementById("folder-url-display").textContent = folder ? folder.url : "Choose where generated PDFs should be stored.";
+      }
+
+      function renderEmailPreview() {
+        const preview = document.getElementById("email-body-preview");
+        preview.innerHTML = state.emailEditorHtml || "<span class=\"subtle\">No email body written yet.</span>";
+      }
+
+      function renderFolderPicker() {
+        const picker = state.folderPicker;
+        if (!picker) return;
+
+        document.getElementById("folder-breadcrumbs").innerHTML = picker.breadcrumbs.map((crumb) => (
+          `<button type="button" class="secondary crumb" data-open-folder="${escapeAttribute(crumb.id)}">${escapeHtml(crumb.name)}</button>`
+        )).join("");
+
+        document.getElementById("folder-list").innerHTML = [
+          `<div class="folder-row">
+            <div>
+              <div><strong>${escapeHtml(picker.currentFolder.name)}</strong></div>
+              <div class="subtle" style="margin-top:4px;">Use this folder for generated PDFs</div>
+            </div>
+            <button type="button" data-select-folder="${escapeAttribute(picker.currentFolder.id)}">Select</button>
+          </div>`
+        ].concat(picker.folders.map((folder) => (
+          `<div class="folder-row">
+            <div>
+              <div><strong>${escapeHtml(folder.name)}</strong></div>
+              <div class="subtle" style="margin-top:4px;">${escapeHtml(folder.url)}</div>
+            </div>
+            <button type="button" class="secondary" data-open-folder="${escapeAttribute(folder.id)}">Open</button>
+          </div>`
+        ))).join("");
+      }
+
+      async function openFolderPicker(folderId) {
+        setBusy(true);
+        setBanner("");
+        try {
+          state.folderPicker = await callServer("getFolderPickerState", folderId || "");
+          renderFolderPicker();
+          document.getElementById("folder-picker").classList.add("open");
+        } catch (error) {
+          setBanner(error.message, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function closeFolderPicker() {
+        document.getElementById("folder-picker").classList.remove("open");
+      }
+
+      function startEmailDraftPolling() {
+        stopEmailDraftPolling();
+        state.emailDraftPollId = window.setInterval(async () => {
+          try {
+            const draft = await callServer("getEmailEditorDraft");
+            if (draft && draft.updatedAt && draft.updatedAt !== state.emailDraftUpdatedAt) {
+              state.emailEditorHtml = draft.html || "";
+              state.emailDraftUpdatedAt = draft.updatedAt;
+              renderEmailPreview();
+            }
+          } catch (error) {
+            // Ignore polling failures and keep the sidebar usable.
+          }
+        }, 1200);
+      }
+
+      function stopEmailDraftPolling() {
+        if (state.emailDraftPollId) {
+          window.clearInterval(state.emailDraftPollId);
+          state.emailDraftPollId = null;
+        }
+      }
+
+      async function syncEmailDraftFromServer() {
+        try {
+          const draft = await callServer("getEmailEditorDraft");
+          if (draft && (draft.html || draft.plain)) {
+            state.emailEditorHtml = draft.html || plainTextToHtml(draft.plain || "");
+            state.emailDraftUpdatedAt = draft.updatedAt || state.emailDraftUpdatedAt;
+            renderEmailPreview();
+          }
+        } catch (error) {
+          // Ignore sync failures and continue using local state.
+        }
+      }
+
+      async function openEmailEditor() {
+        setBusy(true);
+        setBanner("");
+        try {
+          await callServer("openEmailEditorDialog", {
+            html: state.emailEditorHtml || "",
+            plain: htmlToPlainText(state.emailEditorHtml || ""),
+          });
+          startEmailDraftPolling();
+        } catch (error) {
+          setBanner(error.message, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function populateForm() {
+        const config = state.config || {};
+        document.getElementById("template-url").value = config.templateUrl || "";
+        document.getElementById("trigger-mode").value = (config.trigger && config.trigger.mode) || "FORM_SUBMIT";
+        document.getElementById("schedule-type").value = (config.trigger && config.trigger.scheduleType) || "DAILY";
+        document.getElementById("hourly-interval").value = String((config.trigger && config.trigger.hourlyInterval) || 1);
+        document.getElementById("daily-hour").value = String((config.trigger && config.trigger.dailyHour) || 9);
+        document.getElementById("weekly-day").value = (config.trigger && config.trigger.weeklyDay) || "MONDAY";
+        document.getElementById("weekly-hour").value = String((config.trigger && config.trigger.weeklyHour) || 9);
+        document.getElementById("email-to").value = (config.email && config.email.to) || "";
+        document.getElementById("email-cc").value = (config.email && config.email.cc) || "";
+        document.getElementById("email-bcc").value = (config.email && config.email.bcc) || "";
+        document.getElementById("sender-name").value = (config.email && config.email.senderName) || "Document Merge";
+        document.getElementById("email-subject").value = (config.email && config.email.subject) || "";
+        state.emailEditorHtml = (config.email && config.email.bodyHtml) || plainTextToHtml((config.email && config.email.body) || "");
+        state.emailDraftUpdatedAt = "";
+        document.getElementById("file-name-pattern").value = config.fileNamePattern || "";
+        state.selectedFolder = config.folderId ? {
+          id: config.folderId,
+          name: config.folderName,
+          url: config.folderUrl,
+        } : null;
+        renderSelectedFolder();
+        renderEmailPreview();
+        renderTriggerState();
+      }
+
+      function collectMappings() {
+        const mappings = {};
+        document.querySelectorAll("#mapping-rows select").forEach((select) => {
+          if (select.value) {
+            mappings[select.dataset.tag] = select.value;
+          }
+        });
+        return mappings;
+      }
+
+      function collectPayload() {
+        const plainEmailBody = htmlToPlainText(state.emailEditorHtml);
+        return {
+          templateUrl: document.getElementById("template-url").value.trim(),
+          mappings: collectMappings(),
+          triggerMode: document.getElementById("trigger-mode").value,
+          scheduleType: document.getElementById("schedule-type").value,
+          hourlyInterval: document.getElementById("hourly-interval").value,
+          dailyHour: document.getElementById("daily-hour").value,
+          weeklyDay: document.getElementById("weekly-day").value,
+          weeklyHour: document.getElementById("weekly-hour").value,
+          emailTo: document.getElementById("email-to").value.trim(),
+          emailCc: document.getElementById("email-cc").value.trim(),
+          emailBcc: document.getElementById("email-bcc").value.trim(),
+          senderName: document.getElementById("sender-name").value.trim(),
+          emailSubject: document.getElementById("email-subject").value,
+          emailBody: plainEmailBody,
+          emailBodyHtml: state.emailEditorHtml,
+          folderId: state.selectedFolder ? state.selectedFolder.id : "",
+          folderUrl: state.selectedFolder ? state.selectedFolder.url : "",
+          fileNamePattern: document.getElementById("file-name-pattern").value.trim(),
+        };
+      }
+
+      function applySidebarState(data) {
+        state.spreadsheet = data.spreadsheet;
+        state.sheet = data.sheet;
+        state.template = data.template;
+        state.config = data.config;
+        state.queuedRows = data.queuedRows || [];
+        state.suggestedMappings = data.suggestedMappings || {};
+        renderContext();
+        populateForm();
+        renderTemplate();
+      }
+
+      async function refreshSidebar() {
+        setBusy(true);
+        setBanner("");
+        try {
+          const data = await callServer("getSidebarState");
+          applySidebarState(data);
+        } catch (error) {
+          setBanner(error.message, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function inspectTemplate() {
+        const templateUrl = document.getElementById("template-url").value.trim();
+        if (!templateUrl) {
+          setBanner("Paste a Google Docs or Google Slides template URL first.", "error");
+          return;
+        }
+
+        setBusy(true);
+        setBanner("");
+        try {
+          const response = await callServer("inspectTemplate", templateUrl);
+          state.template = response.template;
+          state.suggestedMappings = response.suggestedMappings || {};
+          state.config.templateUrl = templateUrl;
+          renderTemplate();
+          setBanner("Template loaded. Review the suggested mappings below.", "success");
+        } catch (error) {
+          setBanner(error.message, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function saveConfiguration(runMode) {
+        const resultNode = document.getElementById("result-box");
+        resultNode.classList.add("hidden");
+        setBusy(true);
+        setBanner("");
+
+        try {
+          await syncEmailDraftFromServer();
+          const payload = collectPayload();
+          const saved = await callServer("saveConfiguration", payload);
+          state.config = saved.config;
+          state.template = saved.template;
+          renderTemplate();
+          setBanner(saved.message, "success");
+
+          if (runMode === "SELECTED") {
+            const result = await callServer("runForSelectedRow");
+            showRunResult(result);
+          } else if (runMode === "LATEST") {
+            const result = await callServer("runLatestUnprocessedRow");
+            showRunResult(result);
+          } else if (runMode === "ALL") {
+            const result = await callServer("runAllRows");
+            showRunAllResult(result);
+          }
+        } catch (error) {
+          setBanner(error.message, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function showRunResult(result) {
+        const node = document.getElementById("result-box");
+        if (result.skipped) {
+          node.textContent = result.message;
+        } else {
+          node.innerHTML = `Generated <strong>${escapeHtml(result.pdfName)}</strong> for row ${escapeHtml(String(result.rowNumber))} and emailed it to ${escapeHtml(result.emailTo)}. <a href="${result.pdfUrl}" target="_blank">Open PDF</a>`;
+        }
+        node.classList.remove("hidden");
+      }
+
+      function showRunAllResult(result) {
+        const node = document.getElementById("result-box");
+        node.textContent = `Processed ${result.processedCount} row(s) from the sheet.`;
+        node.classList.remove("hidden");
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function escapeAttribute(value) {
+        return escapeHtml(value).replace(/'/g, "&#39;");
+      }
+
+      function plainTextToHtml(value) {
+        return String(value || "")
+          .split(/\n{2,}/)
+          .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
+          .join("");
+      }
+
+      function htmlToPlainText(value) {
+        const node = document.createElement("div");
+        node.innerHTML = value || "";
+        return (node.innerText || node.textContent || "").trim();
+      }
+
+      document.getElementById("inspect-template-button").addEventListener("click", inspectTemplate);
+      document.getElementById("refresh-button").addEventListener("click", refreshSidebar);
+      document.getElementById("save-button").addEventListener("click", () => saveConfiguration());
+      document.getElementById("run-selected-button").addEventListener("click", () => saveConfiguration("SELECTED"));
+      document.getElementById("run-latest-button").addEventListener("click", () => saveConfiguration("LATEST"));
+      document.getElementById("run-all-button").addEventListener("click", () => saveConfiguration("ALL"));
+      document.getElementById("open-email-editor-button").addEventListener("click", openEmailEditor);
+      document.getElementById("choose-folder-button").addEventListener("click", () => openFolderPicker(state.selectedFolder ? state.selectedFolder.id : ""));
+      document.getElementById("close-folder-picker-button").addEventListener("click", closeFolderPicker);
+      document.getElementById("trigger-mode").addEventListener("change", renderTriggerState);
+      document.getElementById("schedule-type").addEventListener("change", renderTriggerState);
+      document.getElementById("folder-breadcrumbs").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-open-folder]");
+        if (!button) return;
+        openFolderPicker(button.dataset.openFolder);
+      });
+      document.getElementById("folder-list").addEventListener("click", (event) => {
+        const openButton = event.target.closest("[data-open-folder]");
+        const selectButton = event.target.closest("[data-select-folder]");
+        if (openButton) {
+          openFolderPicker(openButton.dataset.openFolder);
+          return;
+        }
+        if (selectButton && state.folderPicker) {
+          state.selectedFolder = {
+            id: selectButton.dataset.selectFolder,
+            name: state.folderPicker.currentFolder.name,
+            url: state.folderPicker.currentFolder.url,
+          };
+          renderSelectedFolder();
+          closeFolderPicker();
+        }
+      });
+
+      window.addEventListener("focus", syncEmailDraftFromServer);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          syncEmailDraftFromServer();
+        }
+      });
+
+      fillHourOptions("daily-hour");
+      fillHourOptions("weekly-hour");
+      refreshSidebar();
+    </script>
+  </body>
+</html>

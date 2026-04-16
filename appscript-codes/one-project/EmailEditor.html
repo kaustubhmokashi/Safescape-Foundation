@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --surface: #ffffff;
+        --surface-soft: #f7f7f5;
+        --line: #e7e6e2;
+        --text: #262624;
+        --muted: #7a7a73;
+        --accent: #2f6feb;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.5 "Inter", sans-serif;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+      }
+
+      .topbar {
+        padding: 14px 18px 10px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font: 500 10px/1.2 "IBM Plex Mono", monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+
+      .subtle {
+        color: var(--muted);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .toolbar button,
+      .toolbar select,
+      .footer button {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        color: var(--text);
+        padding: 8px 10px;
+        font: inherit;
+      }
+
+      .toolbar button {
+        min-width: 40px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .toolbar select {
+        min-width: 130px;
+      }
+
+      .editor-wrap {
+        padding: 16px 18px;
+        display: grid;
+        gap: 12px;
+        min-height: 0;
+      }
+
+      .editor-surface {
+        min-height: 420px;
+        height: 100%;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+        padding: 18px;
+        outline: none;
+      }
+
+      .editor-surface:focus {
+        border-color: #bfd0ff;
+        box-shadow: 0 0 0 3px rgba(47, 111, 235, 0.08);
+      }
+
+      .editor-surface img {
+        max-width: 100%;
+        height: auto;
+        cursor: pointer;
+      }
+
+      .editor-surface img.selected-image {
+        outline: 2px solid #bfd0ff;
+        outline-offset: 2px;
+      }
+
+      .image-tools {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface-soft);
+      }
+
+      .image-tools-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .image-tools-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .image-tools button {
+        width: auto;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text);
+        padding: 6px 10px;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .image-tools input[type="range"] {
+        flex: 1 1 180px;
+      }
+
+      .image-tools .subtle {
+        font-size: 12px;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px 16px;
+        border-top: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .footer .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .primary {
+        background: var(--text) !important;
+        color: #fff !important;
+        border-color: var(--text) !important;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .toolbar .divider {
+        width: 1px;
+        align-self: stretch;
+        background: var(--line);
+      }
+
+      .tool-label {
+        min-width: 34px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .status {
+        color: var(--muted);
+        font-size: 12px;
+        min-height: 18px;
+      }
+
+      .status.error {
+        color: #8a2d21;
+      }
+
+      .status.success {
+        color: #205939;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="topbar">
+        <div class="eyebrow">Email Editor</div>
+        <h1>Compose the email body</h1>
+        <div class="subtle" style="margin-top:6px;">Use placeholders like <code>{{Name}}</code>. Images can be inserted directly into the email body.</div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="tool-label" data-command="undo" title="Undo">Undo</button>
+        <button type="button" class="tool-label" data-command="redo" title="Redo">Redo</button>
+        <div class="divider" aria-hidden="true"></div>
+        <select id="font-family-select">
+          <option value="Arial">Sans Serif</option>
+          <option value="Georgia">Serif</option>
+          <option value="Courier New">Monospace</option>
+          <option value="Trebuchet MS">Trebuchet</option>
+        </select>
+        <select id="block-format-select">
+          <option value="P">Paragraph</option>
+          <option value="H1">Heading 1</option>
+          <option value="H2">Heading 2</option>
+          <option value="H3">Heading 3</option>
+        </select>
+        <div class="divider" aria-hidden="true"></div>
+        <button type="button" class="tool-label" data-command="bold" title="Bold"><strong>B</strong></button>
+        <button type="button" class="tool-label" data-command="italic" title="Italic"><em>I</em></button>
+        <button type="button" class="tool-label" data-command="underline" title="Underline"><u>U</u></button>
+        <input id="text-color-input" type="color" value="#262624" style="width:42px;height:38px;padding:4px;border:1px solid var(--line);border-radius:10px;background:#fff;" />
+        <div class="divider" aria-hidden="true"></div>
+        <button type="button" class="tool-label" data-command="justifyLeft" title="Align Left">L</button>
+        <button type="button" class="tool-label" data-command="justifyCenter" title="Align Center">C</button>
+        <button type="button" class="tool-label" data-command="justifyRight" title="Align Right">R</button>
+        <button type="button" class="tool-label" data-command="insertOrderedList" title="Numbered List">1.</button>
+        <button type="button" class="tool-label" data-command="insertUnorderedList" title="Bulleted List">Bul</button>
+        <button type="button" class="tool-label" id="quote-button" title="Quote">Qt</button>
+        <button type="button" class="tool-label" id="link-button" title="Insert Link">Link</button>
+        <button type="button" class="tool-label" id="unlink-button" title="Remove Link">Unlink</button>
+        <button type="button" class="tool-label" id="image-button" title="Insert Image">Img</button>
+        <button type="button" class="tool-label" data-command="removeFormat" title="Clear Formatting">Clear</button>
+        <input id="image-input" class="hidden" type="file" accept="image/*" multiple />
+      </div>
+
+      <div class="editor-wrap">
+        <div id="editor-surface" class="editor-surface" contenteditable="true"></div>
+        <div id="image-tools" class="image-tools hidden">
+          <div class="image-tools-head">
+            <div>
+              <div><strong>Resize selected image</strong></div>
+              <div class="subtle">Click any image in the editor to adjust its size.</div>
+            </div>
+            <div id="image-size-value" class="subtle">100%</div>
+          </div>
+          <div class="image-tools-row">
+            <button type="button" data-image-size="25">25%</button>
+            <button type="button" data-image-size="50">50%</button>
+            <button type="button" data-image-size="75">75%</button>
+            <button type="button" data-image-size="100">100%</button>
+          </div>
+          <div class="image-tools-row">
+            <input id="image-size-range" type="range" min="10" max="100" step="5" value="100" />
+            <button type="button" id="image-remove-button">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div id="status-message" class="status">Content is saved back to the sidebar when you click Use This Email.</div>
+        <div class="actions">
+          <button type="button" id="cancel-button">Cancel</button>
+          <button type="button" id="save-button" class="primary">Use This Email</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const initialDraft = <?!= initialDraftJson ?>;
+      const editor = document.getElementById("editor-surface");
+      const saveButton = document.getElementById("save-button");
+      const cancelButton = document.getElementById("cancel-button");
+      const statusMessage = document.getElementById("status-message");
+      const imageTools = document.getElementById("image-tools");
+      const imageSizeRange = document.getElementById("image-size-range");
+      const imageSizeValue = document.getElementById("image-size-value");
+      let selectedImage = null;
+
+      function focusEditor() {
+        editor.focus();
+      }
+
+      function setStatus(message, tone) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status" + (tone ? " " + tone : "");
+      }
+
+      function setSavingState(isSaving) {
+        saveButton.disabled = isSaving;
+        cancelButton.disabled = isSaving;
+        saveButton.textContent = isSaving ? "Saving..." : "Use This Email";
+      }
+
+      function exec(command, value) {
+        focusEditor();
+        document.execCommand(command, false, value || null);
+      }
+
+      function clearSelectedImage() {
+        if (selectedImage) {
+          selectedImage.classList.remove("selected-image");
+        }
+        selectedImage = null;
+        imageTools.classList.add("hidden");
+      }
+
+      function getImageWidthPercent(image) {
+        const widthValue = String(image.style.width || "").trim();
+        const percentMatch = widthValue.match(/^(\d+(?:\.\d+)?)%$/);
+        if (percentMatch) {
+          return Math.max(10, Math.min(100, Math.round(Number(percentMatch[1]))));
+        }
+        return 100;
+      }
+
+      function applyImageSize(percent) {
+        if (!selectedImage) return;
+        const safePercent = Math.max(10, Math.min(100, Number(percent) || 100));
+        selectedImage.style.width = safePercent + "%";
+        selectedImage.style.maxWidth = "100%";
+        selectedImage.style.height = "auto";
+        imageSizeRange.value = String(safePercent);
+        imageSizeValue.textContent = safePercent + "%";
+      }
+
+      function selectImage(image) {
+        if (selectedImage && selectedImage !== image) {
+          selectedImage.classList.remove("selected-image");
+        }
+        selectedImage = image;
+        selectedImage.classList.add("selected-image");
+        imageTools.classList.remove("hidden");
+        applyImageSize(getImageWidthPercent(image));
+      }
+
+      function insertImageAtCursor(dataUrl) {
+        focusEditor();
+        const html = '<img src="' + dataUrl + '" style="width:100%;max-width:100%;height:auto;" alt="Inserted image">';
+        document.execCommand("insertHTML", false, html);
+        const images = editor.querySelectorAll("img");
+        if (images.length) {
+          selectImage(images[images.length - 1]);
+        }
+      }
+
+      function htmlToPlainText(value) {
+        const node = document.createElement("div");
+        node.innerHTML = value || "";
+        return (node.innerText || node.textContent || "").trim();
+      }
+
+      function saveAndClose() {
+        const html = editor.innerHTML.trim();
+        const plain = htmlToPlainText(html);
+        setSavingState(true);
+        setStatus("Saving email body back to the sidebar...", "");
+        google.script.run
+          .withSuccessHandler(() => {
+            setStatus("Saved. Closing editor...", "success");
+            window.setTimeout(() => google.script.host.close(), 150);
+          })
+          .withFailureHandler((error) => {
+            setSavingState(false);
+            setStatus((error && error.message) || "Could not save the email body.", "error");
+          })
+          .saveEmailEditorDraft({ html, plain });
+      }
+
+      editor.innerHTML = initialDraft.html || "<p>Hi {{Name}},</p><p>Please find the generated PDF attached.</p><p>Thanks,</p>";
+
+      editor.addEventListener("click", (event) => {
+        if (event.target.tagName === "IMG") {
+          selectImage(event.target);
+          return;
+        }
+        clearSelectedImage();
+      });
+
+      document.addEventListener("click", (event) => {
+        if (event.target.closest(".image-tools") || event.target.closest("#editor-surface")) return;
+        clearSelectedImage();
+      });
+
+      document.querySelector(".toolbar").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-command]");
+        if (!button) return;
+        exec(button.dataset.command);
+      });
+
+      document.getElementById("font-family-select").addEventListener("change", (event) => {
+        exec("fontName", event.target.value);
+      });
+
+      document.getElementById("block-format-select").addEventListener("change", (event) => {
+        exec("formatBlock", event.target.value);
+      });
+
+      document.getElementById("text-color-input").addEventListener("input", (event) => {
+        exec("foreColor", event.target.value);
+      });
+
+      document.getElementById("link-button").addEventListener("click", () => {
+        const url = window.prompt("Enter link URL");
+        if (!url) return;
+        exec("createLink", url);
+      });
+
+      document.getElementById("unlink-button").addEventListener("click", () => {
+        exec("unlink");
+      });
+
+      document.getElementById("quote-button").addEventListener("click", () => {
+        exec("formatBlock", "BLOCKQUOTE");
+      });
+
+      document.getElementById("image-button").addEventListener("click", () => {
+        document.getElementById("image-input").click();
+      });
+
+      document.getElementById("image-input").addEventListener("change", (event) => {
+        Array.from(event.target.files || []).forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            insertImageAtCursor(reader.result);
+          };
+          reader.readAsDataURL(file);
+        });
+        event.target.value = "";
+      });
+
+      imageSizeRange.addEventListener("input", (event) => {
+        applyImageSize(event.target.value);
+      });
+
+      imageTools.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-image-size]");
+        if (!button) return;
+        applyImageSize(button.dataset.imageSize);
+      });
+
+      document.getElementById("image-remove-button").addEventListener("click", () => {
+        if (!selectedImage) return;
+        const imageToRemove = selectedImage;
+        clearSelectedImage();
+        imageToRemove.remove();
+        focusEditor();
+      });
+
+      document.getElementById("save-button").addEventListener("click", saveAndClose);
+      document.getElementById("cancel-button").addEventListener("click", () => google.script.host.close());
+    </script>
+  </body>
+</html>
