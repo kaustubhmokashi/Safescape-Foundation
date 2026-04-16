@@ -317,7 +317,7 @@ button {
 
 .cta-row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 0.9rem;
   flex-wrap: wrap;
 }
@@ -336,9 +336,7 @@ button {
   height: 3.05rem;
   padding: 0;
   line-height: 1;
-  align-self: center;
-  position: relative;
-  top: 1px;
+  align-self: auto;
 }
 
 .cta-row .instagram-link-icon {
