@@ -30,6 +30,8 @@
 
   let activeFormType = "adoption";
   let pendingStatusTimer = null;
+  let pendingUploadStateMap = new WeakMap();
+  let fileUploadSelectionMap = new WeakMap();
   let cursorElement = null;
   let cursorImage = null;
   let cursorIsInverted = false;
@@ -218,6 +220,14 @@
       hint.textContent = field.help;
       wrapper.appendChild(hint);
     }
+
+    if (field.type === "file") {
+      const uploadState = document.createElement("div");
+      uploadState.className = "file-upload-state";
+      uploadState.dataset.uploadStatus = "idle";
+      uploadState.innerHTML = '<span class="file-upload-state-icon" aria-hidden="true"></span><span class="file-upload-state-text">No files selected yet.</span>';
+      wrapper.appendChild(uploadState);
+    }
     return wrapper;
   }
 
@@ -362,6 +372,14 @@
   }
 
   function readFileAsDataUrl(file) {
+    function getCanvasMimeType(sourceFile) {
+      const type = String(sourceFile && sourceFile.type ? sourceFile.type : "").toLowerCase();
+      if (type === "image/png" || type === "image/webp" || type === "image/gif") {
+        return type;
+      }
+      return "image/jpeg";
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
@@ -401,6 +419,7 @@
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
       const compressedDataUrl = await new Promise((resolve) => {
+        const outputMimeType = getCanvasMimeType(file);
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -413,8 +432,8 @@
             reader.onerror = () => resolve(rawDataUrl);
             reader.readAsDataURL(blob);
           },
-          "image/jpeg",
-          0.82
+          outputMimeType,
+          outputMimeType === "image/jpeg" ? 0.82 : undefined
         );
       });
 
@@ -443,18 +462,19 @@
       }
 
       if (node instanceof HTMLInputElement && node.type === "file") {
-        const files = Array.from(node.files || []);
-        responses[title] = files.length ? files.map((file) => file.name).join(", ") : "";
-        for (const file of files) {
+        const items = getFileUploadItems(node);
+        responses[title] = items.length ? items.map((item) => item.fileName || item.file?.name || "").filter(Boolean).join(", ") : "";
+        const preparedUploads = await getPreparedUploads(node);
+        preparedUploads.forEach((upload) => {
           uploads.push({
             question: title,
             fieldName: node.name || node.id || "",
-            fileName: file.name,
-            mimeType: file.type || "application/octet-stream",
-            size: file.size || 0,
-            dataUrl: await readFileAsDataUrl(file),
+            fileName: upload.fileName || items[0]?.fileName || items[0]?.file?.name || "",
+            mimeType: upload.mimeType || items[0]?.mimeType || items[0]?.file?.type || "application/octet-stream",
+            size: upload.size || items[0]?.size || items[0]?.file?.size || 0,
+            dataUrl: upload.dataUrl
           });
-        }
+        });
         continue;
       }
 
@@ -534,7 +554,7 @@
   }
 
   function handleFormSubmit(event) {
-    const webAppUrl = config.forms && config.forms.webAppUrl;
+    const webAppUrl = getSheetWebAppUrl(form);
     if (!webAppUrl) {
       event.preventDefault();
       setStatus(
@@ -587,6 +607,14 @@
     }
 
     return "";
+  }
+
+  function getSheetWebAppUrl(formEl) {
+    if (formEl && formEl.dataset && String(formEl.dataset.webAppUrl || "").trim()) {
+      return String(formEl.dataset.webAppUrl || "").trim();
+    }
+
+    return config.forms && config.forms.webAppUrl;
   }
 
   function collectChoiceGridValue(grid) {
@@ -646,6 +674,351 @@
     return node.closest(".form-field");
   }
 
+  function getFileUploadSignature(control) {
+    if (!control || !(control instanceof HTMLInputElement) || control.type !== "file") {
+      return "";
+    }
+
+    return Array.from(control.files || [])
+      .map((file) => [file.name, file.size, file.lastModified, file.type].join(":"))
+      .join("|");
+  }
+
+  function getFileUploadStateNode(control) {
+    const container = getFieldContainer(control);
+    if (!container) {
+      return null;
+    }
+    return container.querySelector("[data-upload-status]");
+  }
+
+  function getFileUploadSelectionState(control) {
+    if (!control || !(control instanceof HTMLInputElement) || control.type !== "file") {
+      return null;
+    }
+
+    let state = fileUploadSelectionMap.get(control);
+    if (!state) {
+      state = { items: [] };
+      fileUploadSelectionMap.set(control, state);
+    }
+    return state;
+  }
+
+  function getFileUploadItemKey(file) {
+    if (!file) {
+      return "";
+    }
+    return [file.name || "", file.size || 0, file.lastModified || 0, file.type || ""].join(":");
+  }
+
+  function getFileUploadItems(control) {
+    const state = getFileUploadSelectionState(control);
+    return state && Array.isArray(state.items) ? state.items : [];
+  }
+
+  function setTrackedFileUploads(control, items) {
+    const state = getFileUploadSelectionState(control);
+    if (!state) {
+      return [];
+    }
+    state.items = Array.isArray(items) ? items : [];
+    return state.items;
+  }
+
+  function addTrackedFileUploads(control, files) {
+    const state = getFileUploadSelectionState(control);
+    if (!state) {
+      return [];
+    }
+
+    const current = Array.isArray(state.items) ? state.items : [];
+    const existingKeys = new Set(current.map((item) => item.key));
+    const maxFiles = Number(control.dataset.maxFiles || (control.multiple ? 5 : 1));
+    const appended = [];
+
+    Array.from(files || []).forEach((file) => {
+      const key = getFileUploadItemKey(file);
+      if (!key || existingKeys.has(key)) {
+        return;
+      }
+      if (maxFiles > 0 && current.length + appended.length >= maxFiles) {
+        return;
+      }
+
+      appended.push({
+        key,
+        file,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        size: file.size || 0,
+        status: "loading",
+        dataUrl: ""
+      });
+      existingKeys.add(key);
+    });
+
+    state.items = current.concat(appended);
+    return appended;
+  }
+
+  function getFileUploadStatus(items) {
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      return "idle";
+    }
+    if (list.some((item) => item.status === "error")) {
+      return "error";
+    }
+    if (list.some((item) => item.status === "loading")) {
+      return "loading";
+    }
+    return "ready";
+  }
+
+  function getFileUploadSummaryMessage(items) {
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      return "No files selected yet.";
+    }
+
+    const readyCount = list.filter((item) => item.status === "ready").length;
+    const loadingCount = list.filter((item) => item.status === "loading").length;
+    const errorCount = list.filter((item) => item.status === "error").length;
+
+    if (errorCount > 0) {
+      return `We could not prepare ${errorCount} file${errorCount === 1 ? "" : "s"} for upload.`;
+    }
+    if (loadingCount > 0) {
+      return `Preparing ${loadingCount} file${loadingCount === 1 ? "" : "s"} for upload…`;
+    }
+    return `${readyCount} file${readyCount === 1 ? "" : "s"} ready to upload.`;
+  }
+
+  function createFileUploadItem(item) {
+    const uploadItem = item && typeof item === "object" ? item : { fileName: String(item || "") };
+    const status = uploadItem.status || "loading";
+    const itemEl = document.createElement("div");
+    itemEl.className = `file-upload-item is-${status}`;
+
+    const icon = document.createElement("span");
+    icon.className = "file-upload-item-icon";
+    icon.setAttribute("aria-hidden", "true");
+    if (status === "ready") {
+      icon.classList.add("has-check");
+      icon.innerHTML = '<img src="assets/circle-check.svg" alt="" aria-hidden="true" />';
+    }
+
+    const text = document.createElement("span");
+    text.className = "file-upload-item-text";
+    text.textContent = uploadItem.fileName || uploadItem.file?.name || "Selected file";
+
+    if (uploadItem.size) {
+      const size = document.createElement("span");
+      size.className = "file-upload-item-size";
+      size.textContent = ` (${Math.max(1, Math.round(uploadItem.size / 1024))} KB)`;
+      text.appendChild(size);
+    }
+
+    itemEl.append(icon, text);
+    return itemEl;
+  }
+
+  function renderFileUploadState(control, status, message, files = []) {
+    const stateNode = getFileUploadStateNode(control);
+    if (!stateNode) {
+      return;
+    }
+
+    const fileList = Array.isArray(files) ? files : [];
+    const effectiveStatus = status || getFileUploadStatus(fileList);
+    stateNode.dataset.uploadStatus = effectiveStatus;
+    stateNode.classList.toggle("is-loading", effectiveStatus === "loading");
+    stateNode.classList.toggle("is-ready", effectiveStatus === "ready");
+    stateNode.classList.toggle("is-error", effectiveStatus === "error");
+
+    stateNode.innerHTML = "";
+
+    const summary = document.createElement("div");
+    summary.className = "file-upload-state-summary";
+
+    const summaryIcon = document.createElement("span");
+    summaryIcon.className = "file-upload-state-icon";
+    summaryIcon.setAttribute("aria-hidden", "true");
+    if (effectiveStatus === "ready") {
+      summaryIcon.classList.add("has-check");
+      summaryIcon.innerHTML = '<img src="assets/circle-check.svg" alt="" aria-hidden="true" />';
+    }
+
+    const textNode = document.createElement("span");
+    textNode.className = "file-upload-state-text";
+    textNode.textContent = message || "";
+
+    summary.append(summaryIcon, textNode);
+    stateNode.appendChild(summary);
+
+    if (fileList.length) {
+      const list = document.createElement("div");
+      list.className = "file-upload-list";
+      fileList.forEach((file) => {
+        list.appendChild(createFileUploadItem(file));
+      });
+      stateNode.appendChild(list);
+    }
+  }
+
+  function setFileUploadState(control, status, message, files = []) {
+    renderFileUploadState(control, status, message, files);
+  }
+
+  async function prepareFileUploadPreview(control) {
+    if (!control || !(control instanceof HTMLInputElement) || control.type !== "file") {
+      return [];
+    }
+
+    const selectedFiles = Array.from(control.files || []);
+    const trackedItems = getFileUploadItems(control);
+    if (!selectedFiles.length && !trackedItems.length) {
+      pendingUploadStateMap.delete(control);
+      setFileUploadState(control, "idle", "No files selected yet.");
+      return [];
+    }
+
+    const newlyAdded = selectedFiles.length ? addTrackedFileUploads(control, selectedFiles) : [];
+    const items = getFileUploadItems(control);
+    if (!items.length) {
+      pendingUploadStateMap.delete(control);
+      setFileUploadState(control, "idle", "No files selected yet.");
+      return [];
+    }
+
+    const signature = items.map((item) => item.key).join("|");
+    const existingState = pendingUploadStateMap.get(control);
+    if (!newlyAdded.length && existingState && existingState.signature === signature && existingState.status === "ready") {
+      setFileUploadState(control, "ready", getFileUploadSummaryMessage(items), items);
+      return existingState.uploads || [];
+    }
+
+    const startedAt = performance.now();
+    const minVisibleDurationMs = 1400;
+    if (newlyAdded.length) {
+      newlyAdded.forEach((item) => {
+        item.status = "loading";
+      });
+    }
+    setFileUploadState(control, "loading", getFileUploadSummaryMessage(items), items);
+    const uploadPromise = Promise.all(
+      items
+        .filter((item) => item.status !== "ready")
+        .map(async (item) => {
+          const dataUrl = await readFileAsDataUrl(item.file);
+          item.dataUrl = dataUrl;
+          item.mimeType = item.mimeType || item.file?.type || "application/octet-stream";
+          item.size = item.size || item.file?.size || 0;
+          item.fileName = item.fileName || item.file?.name || "";
+          item.status = "ready";
+          setFileUploadState(control, getFileUploadStatus(items), getFileUploadSummaryMessage(items), items);
+          return {
+            question: control.dataset.q || control.name || "",
+            fieldName: control.name || control.id || "",
+            fileName: item.fileName || item.file?.name || "",
+            mimeType: item.mimeType || item.file?.type || "application/octet-stream",
+            size: item.size || item.file?.size || 0,
+            dataUrl
+          };
+        })
+    );
+
+    pendingUploadStateMap.set(control, {
+      signature,
+      status: "loading",
+      promise: uploadPromise,
+      uploads: []
+    });
+
+    try {
+      const uploads = await uploadPromise;
+      const elapsed = performance.now() - startedAt;
+      if (elapsed < minVisibleDurationMs) {
+        await new Promise((resolve) => window.setTimeout(resolve, minVisibleDurationMs - elapsed));
+      }
+      const currentSignature = getFileUploadItems(control).map((item) => item.key).join("|");
+      if (currentSignature !== signature) {
+        return uploads;
+      }
+
+      pendingUploadStateMap.set(control, {
+        signature,
+        status: "ready",
+        promise: Promise.resolve(uploads),
+        uploads
+      });
+      setFileUploadState(control, "ready", getFileUploadSummaryMessage(items), items);
+      return uploads;
+    } catch (error) {
+      const currentSignature = getFileUploadItems(control).map((item) => item.key).join("|");
+      if (currentSignature === signature) {
+        pendingUploadStateMap.set(control, {
+          signature,
+          status: "error",
+          promise: Promise.resolve([]),
+          uploads: []
+        });
+        setFileUploadState(control, "error", "We could not prepare these files for upload. Please choose them again.", items);
+      }
+      throw error;
+    }
+  }
+
+  async function getPreparedUploads(control) {
+    if (!control || !(control instanceof HTMLInputElement) || control.type !== "file") {
+      return [];
+    }
+
+    const items = getFileUploadItems(control);
+    if (!items.length) {
+      return [];
+    }
+
+    const signature = items.map((item) => item.key).join("|");
+    const state = pendingUploadStateMap.get(control);
+    if (state && state.signature === signature) {
+      if (state.status === "ready" && Array.isArray(state.uploads)) {
+        setFileUploadState(control, "ready", getFileUploadSummaryMessage(items), items);
+        return state.uploads;
+      }
+      if (state.promise) {
+        const uploads = await state.promise;
+        const currentState = pendingUploadStateMap.get(control);
+        if (currentState && currentState.signature === signature) {
+          pendingUploadStateMap.set(control, {
+            signature,
+            status: "ready",
+            promise: Promise.resolve(uploads),
+            uploads
+          });
+          setFileUploadState(control, "ready", getFileUploadSummaryMessage(items), items);
+        }
+        return uploads;
+      }
+    }
+
+    return prepareFileUploadPreview(control);
+  }
+
+  function hasPendingFileUploads(formEl) {
+    const controls = Array.from(formEl.querySelectorAll("input[type='file']"));
+    return controls.some((control) => {
+      const items = getFileUploadItems(control);
+      if (!items.length) {
+        return false;
+      }
+      const state = pendingUploadStateMap.get(control);
+      const signature = items.map((item) => item.key).join("|");
+      return !(state && state.signature === signature && state.status === "ready");
+    });
+  }
+
   function setFieldError(container, message) {
     if (!container) {
       return;
@@ -670,8 +1043,8 @@
     const container = getFieldContainer(control);
     const value = normalizeValue(control.value);
 
-      if (control instanceof HTMLInputElement && control.type === "file") {
-      const files = Array.from(control.files || []);
+    if (control instanceof HTMLInputElement && control.type === "file") {
+      const files = getFileUploadItems(control);
       const maxMb = Number(control.dataset.maxMb || 10);
       const maxFiles = Number(control.dataset.maxFiles || (control.multiple ? 5 : 1));
       if (control.required && !files.length) {
@@ -968,6 +1341,76 @@
     syncAllOtherFields(formEl);
   }
 
+  function fillVolunteerTestData(formEl) {
+    if (!formEl || formEl.dataset.sheetForm !== "volunteer") {
+      return;
+    }
+
+    setNativeFieldValue(formEl.querySelector("#fullName"), "Test Volunteer");
+    setNativeFieldValue(formEl.querySelector("#age"), "28");
+    setRadioValue(formEl, "gender", "Female");
+    setNativeFieldValue(formEl.querySelector("#phone"), "9988002758");
+    setNativeFieldValue(formEl.querySelector("#email"), "test.volunteer@safescape.local");
+    setCheckboxValues(formEl, "volunteerInterests", [
+      "Community Outreach",
+      "Education & Mentorship",
+      "Fundraising & Event planning",
+      "Other"
+    ]);
+    setNativeFieldValue(formEl.querySelector("#volunteer_interests_other"), "Event logistics");
+    setNativeFieldValue(formEl.querySelector("#hoursPerWeek"), "6");
+    setNativeFieldValue(
+      formEl.querySelector("#skills"),
+      "Content writing, event coordination, and community outreach support."
+    );
+    setNativeFieldValue(
+      formEl.querySelector("#questions"),
+      "Would love to know more about weekend outreach and event support opportunities."
+    );
+
+    syncAllOtherFields(formEl);
+  }
+
+  function fillSurrenderTestData(formEl) {
+    if (!formEl || formEl.dataset.sheetForm !== "surrender") {
+      return;
+    }
+
+    setNativeFieldValue(formEl.querySelector("#fullName"), "Test Surrender Applicant");
+    setNativeFieldValue(formEl.querySelector("#phone"), "9988002758");
+    setNativeFieldValue(formEl.querySelector("#email"), "test.surrender@safescape.local");
+    setNativeFieldValue(formEl.querySelector("#address"), "24, Blue Palm Street, Bengaluru, Karnataka");
+
+    setNativeFieldValue(formEl.querySelector("#petName"), "Bruno");
+    setNativeFieldValue(formEl.querySelector("#petAge"), "4 years");
+    setNativeFieldValue(formEl.querySelector("#petBreed"), "Indie");
+    setRadioValue(formEl, "petGender", "Male");
+    setNativeFieldValue(formEl.querySelector("#location"), "Jayanagar, Bengaluru");
+    setRadioValue(formEl, "neuteredSpayed", "Yes");
+    setNativeFieldValue(
+      formEl.querySelector("#medicalHistory"),
+      "Vaccinated, occasional skin allergies, currently on a grain-free diet."
+    );
+    setRadioValue(
+      formEl,
+      "biteHistory",
+      "the pet has NOT bitten / harmed / shown aggression towards anyone in the past"
+    );
+    setNativeFieldValue(
+      formEl.querySelector("#reason"),
+      "Unable to continue care due to relocation and changing family circumstances."
+    );
+    setRadioValue(formEl, "vaccinationStatus", "Vaccinated");
+    setNativeFieldValue(formEl.querySelector("#specialComments"), "Friendly, house-trained, and walks well on leash.");
+    setRadioValue(formEl, "friendlyWithDogs", "Yes");
+    setNativeFieldValue(
+      formEl.querySelector("#behaviouralIssues"),
+      "Mild separation anxiety when left alone for long stretches."
+    );
+
+    syncAllOtherFields(formEl);
+  }
+
   function maybeApplyAdoptionTestFill(sheetForm, target) {
     if (
       sheetForm.dataset.sheetForm === "adoption" &&
@@ -990,11 +1433,33 @@
     }
   }
 
+  function maybeApplyVolunteerTestFill(sheetForm, target) {
+    if (
+      sheetForm.dataset.sheetForm === "volunteer" &&
+      target instanceof HTMLInputElement &&
+      target.id === "fullName" &&
+      target.value.trim() === adoptionTestFillTrigger
+    ) {
+      fillVolunteerTestData(sheetForm);
+    }
+  }
+
+  function maybeApplySurrenderTestFill(sheetForm, target) {
+    if (
+      sheetForm.dataset.sheetForm === "surrender" &&
+      target instanceof HTMLInputElement &&
+      target.id === "fullName" &&
+      target.value.trim() === adoptionTestFillTrigger
+    ) {
+      fillSurrenderTestData(sheetForm);
+    }
+  }
+
   async function handleSheetFormSubmit(event) {
     event.preventDefault();
 
-    const webAppUrl = config.forms && config.forms.webAppUrl;
     const formEl = event.currentTarget;
+    const webAppUrl = getSheetWebAppUrl(formEl);
     const statusEl = formEl.querySelector("[data-form-status]");
 
     const confirmButton = formEl.querySelector("#confirm-button");
@@ -1057,6 +1522,12 @@
       });
 
       formEl.reset();
+      fileInputs.forEach((control) => {
+        if (control) {
+          setTrackedFileUploads(control, []);
+          pendingUploadStateMap.delete(control);
+        }
+      });
       setSheetStatus((config.forms && config.forms.successMessage) || "Thanks. Your form was sent successfully.", "success");
     } catch (error) {
       setSheetStatus("Something went wrong while sending this form. Please try again in a moment.", "error");
@@ -1065,45 +1536,71 @@
 
   function setDialogError(message) {
     const stateEl = document.getElementById("terms-state");
-    const textEl = document.getElementById("terms-state-text");
-    const feedbackEl = document.getElementById("terms-state-feedback");
-    if (!stateEl || !textEl || !feedbackEl) {
+    if (!stateEl) {
       return;
     }
+    const feedbackEl = ensureTermsStateFeedback(stateEl);
+    const textEl = feedbackEl ? feedbackEl.querySelector(".terms-state-text") : null;
     if (message) {
       stateEl.classList.add("is-error");
-      feedbackEl.hidden = false;
-      textEl.textContent = message;
+      if (feedbackEl && textEl) {
+        feedbackEl.hidden = false;
+        textEl.textContent = message;
+      }
       return;
     }
 
     if (!stateEl.classList.contains("is-loading") && !stateEl.classList.contains("is-success")) {
       stateEl.classList.remove("is-error");
-      feedbackEl.hidden = true;
-      textEl.textContent = "";
+      if (feedbackEl && textEl) {
+        feedbackEl.hidden = true;
+        textEl.textContent = "";
+      }
     }
   }
 
   function setTermsDialogState(type, message) {
     const stateEl = document.getElementById("terms-state");
-    const stateTextEl = document.getElementById("terms-state-text");
-    const feedbackEl = document.getElementById("terms-state-feedback");
     const agreeWrap = document.getElementById("terms-agree-wrap");
-    if (!stateEl || !stateTextEl || !feedbackEl || !agreeWrap) {
+    if (!stateEl || !agreeWrap) {
       return;
     }
+    const feedbackEl = ensureTermsStateFeedback(stateEl);
+    const stateTextEl = feedbackEl ? feedbackEl.querySelector(".terms-state-text") : null;
 
     stateEl.className = "terms-state";
     if (type) {
       stateEl.classList.add(`is-${type}`);
-      stateTextEl.textContent = message || "";
+      if (feedbackEl && stateTextEl) {
+        stateTextEl.textContent = message || "";
+      }
       agreeWrap.hidden = type !== "error";
-      feedbackEl.hidden = false;
+      if (feedbackEl) {
+        feedbackEl.hidden = false;
+      }
     } else {
-      stateTextEl.textContent = "";
-      feedbackEl.hidden = true;
+      if (feedbackEl && stateTextEl) {
+        stateTextEl.textContent = "";
+        feedbackEl.hidden = true;
+      }
       agreeWrap.hidden = false;
     }
+  }
+
+  function ensureTermsStateFeedback(stateEl) {
+    let feedbackEl = document.getElementById("terms-state-feedback");
+    if (feedbackEl) {
+      return feedbackEl;
+    }
+
+    feedbackEl = document.createElement("div");
+    feedbackEl.id = "terms-state-feedback";
+    feedbackEl.className = "terms-state-feedback";
+    feedbackEl.hidden = true;
+    feedbackEl.innerHTML =
+      '<span class="terms-state-icon" aria-hidden="true"></span><span class="terms-state-text" id="terms-state-text"></span>';
+    stateEl.appendChild(feedbackEl);
+    return feedbackEl;
   }
 
   function setTermsSubmitLoading(isLoading) {
@@ -1113,12 +1610,23 @@
     }
 
     submitBtn.classList.toggle("terms-submit-loading", Boolean(isLoading));
-    submitBtn.disabled = Boolean(isLoading);
+    syncTermsSubmitButtonState();
 
     const textEl = submitBtn.querySelector(".terms-submit-text");
     if (textEl) {
       textEl.textContent = isLoading ? "Submitting..." : "Submit";
     }
+  }
+
+  function syncTermsSubmitButtonState() {
+    const submitBtn = document.getElementById("terms-submit");
+    const agreeInput = document.getElementById("terms-agree");
+    if (!submitBtn || !agreeInput) {
+      return;
+    }
+
+    const isLoading = submitBtn.classList.contains("terms-submit-loading");
+    submitBtn.disabled = isLoading || !agreeInput.checked;
   }
 
   async function loadTermsIntoDialog() {
@@ -1136,7 +1644,8 @@
   }
 
   async function submitSheetForm(formEl, statusEl) {
-    const webAppUrl = config.forms && config.forms.webAppUrl;
+    const webAppUrl = getSheetWebAppUrl(formEl);
+    const fileInputs = Array.from(formEl.querySelectorAll("input[type='file']"));
 
     function setStatus(message, type) {
       if (!statusEl) {
@@ -1159,6 +1668,12 @@
     }
 
     const { questionOrder, responses, uploads } = await collectSheetSubmissionData(formEl);
+    fileInputs.forEach((control) => {
+      const items = getFileUploadItems(control);
+      if (control && items.length) {
+        setFileUploadState(control, "loading", "Uploading your files to Drive…", items);
+      }
+    });
     setStatus(
       uploads.length ? "Uploading your file and sending your response…" : "Sending your response to the Safescape team…",
       "success"
@@ -1180,6 +1695,13 @@
       });
 
       formEl.reset();
+      fileInputs.forEach((control) => {
+        if (control) {
+          setFileUploadState(control, "ready", "Upload complete.", []);
+          setTrackedFileUploads(control, []);
+          pendingUploadStateMap.delete(control);
+        }
+      });
       setStatus((config.forms && config.forms.successMessage) || "Thanks. Your form was sent successfully.", "success");
       return { ok: true };
     } catch (error) {
@@ -1367,10 +1889,17 @@
         ) {
           if (target.dataset && target.dataset.q) {
             validateTextLikeControl(target);
+            if (target instanceof HTMLInputElement && target.type === "file") {
+              prepareFileUploadPreview(target).catch(() => {
+                // The helper already marks errors in the field UI.
+              });
+            }
           }
         }
         maybeApplyAdoptionTestFill(sheetForm, target);
         maybeApplyFosterTestFill(sheetForm, target);
+        maybeApplyVolunteerTestFill(sheetForm, target);
+        maybeApplySurrenderTestFill(sheetForm, target);
       });
 
       sheetForm.addEventListener("input", (event) => {
@@ -1380,6 +1909,8 @@
         }
         maybeApplyAdoptionTestFill(sheetForm, target);
         maybeApplyFosterTestFill(sheetForm, target);
+        maybeApplyVolunteerTestFill(sheetForm, target);
+        maybeApplySurrenderTestFill(sheetForm, target);
       });
 
       const confirmButton = sheetForm.querySelector("#confirm-button");
@@ -1398,6 +1929,13 @@
               statusEl.textContent = "Please fix the highlighted fields before continuing.";
               statusEl.classList.add("is-error");
             }
+            return;
+          }
+
+          if (hasPendingFileUploads(sheetForm) && statusEl) {
+            statusEl.textContent =
+              "Please wait until the upload check shows complete before moving ahead.";
+            statusEl.classList.remove("is-error", "is-success");
             return;
           }
 
@@ -1424,7 +1962,7 @@
           const actionsEl = document.getElementById("terms-actions");
           if (actionsEl) {
             actionsEl.innerHTML =
-              '<button class="button button-primary" type="button" id="terms-submit"><span class="terms-submit-text">Submit</span></button>';
+              '<button class="button button-primary" type="button" id="terms-submit" disabled><span class="terms-submit-text">Submit</span></button>';
           }
           setTermsDialogState(null, "");
           setTermsSubmitLoading(false);
@@ -1435,17 +1973,20 @@
 
           const newSubmitButton = document.getElementById("terms-submit");
           if (newSubmitButton) {
+            agreeInput.onchange = () => {
+              syncTermsSubmitButtonState();
+            };
+            syncTermsSubmitButtonState();
             newSubmitButton.addEventListener("click", async () => {
               setDialogError("");
-              setTermsDialogState("loading", "Submitting your application...");
-              setTermsSubmitLoading(true);
               if (!agreeInput.checked) {
-                setTermsSubmitLoading(false);
                 setTermsDialogState(null, "");
                 setDialogError("Please confirm that you agree with the terms before submitting.");
+                syncTermsSubmitButtonState();
                 return;
               }
 
+              setTermsSubmitLoading(true);
               const result = await submitSheetForm(sheetForm, statusEl);
               if (result.ok) {
                 showTermsSuccess(dialogEl);
@@ -1742,6 +2283,8 @@
     document.body.appendChild(layer);
 
     let activeWalkerCount = 0;
+    const footprintHistory = [];
+    const MAX_VISIBLE_FOOTPRINTS = 24;
 
     const rand = (min, max) => min + Math.random() * (max - min);
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -1844,8 +2387,19 @@
             : "assets/footprint-right.svg";
       stamp.appendChild(image);
       layer.appendChild(stamp);
+      footprintHistory.push(stamp);
+      while (footprintHistory.length > MAX_VISIBLE_FOOTPRINTS) {
+        const oldest = footprintHistory.shift();
+        if (oldest && oldest.parentNode) {
+          oldest.remove();
+        }
+      }
 
       window.setTimeout(() => {
+        const index = footprintHistory.indexOf(stamp);
+        if (index >= 0) {
+          footprintHistory.splice(index, 1);
+        }
         stamp.remove();
       }, 2050);
     };

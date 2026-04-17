@@ -7,7 +7,7 @@
     <title>Application to Surrender | Safescape Foundation</title>
     <meta
       name="description"
-      content="Share the necessary details so Safescape can responsibly review a surrender request."
+      content="Request a surrender review for a pet and share the details Safescape needs to assess the case responsibly."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260417_7" />
   </head>
   <body class="form-page-body" data-default-form="surrender">
     <div class="page-shell">
@@ -32,43 +32,123 @@
       </header>
 
       <main class="form-page-layout form-page-main">
-        <section class="form-page-hero section">
-          <p class="eyebrow">Safescape Form</p>
-          <h1>Application to Surrender</h1>
-          <p>
-            If rehoming has become unavoidable, use this form to share the pet's details and the context around the
-            request so Safescape can review it responsibly.
-          </p>
-          <p class="form-page-note">Your response will go directly to the Safescape team through this new digital home.</p>
-          <a class="button button-secondary" href="index.html#pillars">Back to home</a>
-        </section>
-
-        <section class="form-page-panel section">
-          <div class="form-panel">
+        <section class="form-page-panel form-page-panel-bare section">
+          <div class="form-panel form-panel-bare">
             <div class="form-panel-header">
-              <h3 id="form-title">Application to Surrender</h3>
-              <p id="form-description">Share the pet details so Safescape can review the request responsibly.</p>
+              <h1 class="form-page-title" id="form-title">Application to Surrender</h1>
+              <p class="form-page-subtitle" id="form-description">
+                Tell us about the pet and the reasons behind the request so Safescape can review it responsibly.
+              </p>
             </div>
 
-            <form id="lead-form" class="lead-form" method="POST" target="submission-frame" novalidate>
+            <form
+              id="lead-form"
+              class="sheet-form lead-form"
+              data-sheet-form="surrender"
+              data-sheet-name="Surrender"
+              data-web-app-url="https://script.google.com/macros/s/AKfycbwETLsHI8pNXuaTnTFH5ld3rdirPcthzUMv7AaGKY6ObQ7Y4cBHjxxiueeiUMBF1EEh/exec"
+              novalidate
+            >
               <input type="hidden" name="formType" id="form-type" value="surrender" />
               <input type="hidden" name="submittedAt" id="submitted-at" value="" />
               <input type="hidden" name="sourcePage" value="application-to-surrender" />
               <div id="form-fields" class="form-fields"></div>
-              <div class="form-actions-row">
-                <button id="submit-button" class="button button-primary" type="submit">Submit surrender application</button>
-                <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+              <div class="form-actions-row form-actions-row-stacked">
+                <button class="button button-primary" type="button" id="confirm-button">Confirm</button>
+                <p class="form-status" role="status" aria-live="polite" data-form-status></p>
               </div>
             </form>
           </div>
-
-          <iframe name="submission-frame" title="Hidden form submission target" class="submission-frame"></iframe>
         </section>
       </main>
     </div>
 
-    <script src="js/site-config.js"></script>
-    <script src="js/site-data.js"></script>
-    <script src="js/main.js"></script>
+    <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+      <div class="terms-dialog-card">
+        <div class="terms-dialog-head">
+          <p class="terms-kicker">Safescape Foundation</p>
+          <h2 class="terms-title" id="terms-title">Terms &amp; Conditions</h2>
+        </div>
+        <div class="terms-scroll" id="terms-scroll" role="document" aria-label="Terms and Conditions">
+          <div class="terms-content">
+            <p><strong>1. Nature of Request</strong></p>
+            <p>
+              Submitting this form constitutes a request for surrender, not a guarantee of acceptance. Safescape
+              Foundation reserves the right to accept or decline any surrender request at its sole discretion.
+            </p>
+            <p><strong>2. Ownership / Caregiver Declaration</strong></p>
+            <p>The Applicant confirms that:</p>
+            <p>a. They are the legal owner of the pet; or</p>
+            <p>b. They are the primary caregiver/rescuer of the pet and have lawful possession and authority to request surrender; or</p>
+            <p>c. They have obtained consent from the legal owner or relevant authority to initiate this surrender.</p>
+            <p>
+              The Applicant agrees to provide valid identification and any supporting proof (if available) upon
+              request. The Organization reserves the right to verify the Applicant’s claim before accepting the surrender.
+            </p>
+            <p><strong>3. Reason for Surrender</strong></p>
+            <p>
+              The Applicant must provide truthful and complete information regarding the reason for surrender.
+              Misrepresentation or concealment of facts may lead to rejection of the request.
+            </p>
+            <p><strong>4. Health &amp; Behaviour Disclosure</strong></p>
+            <p>The Applicant agrees to disclose all known details about the pet, including:</p>
+            <p>a. Medical history, vaccinations, and ongoing treatments</p>
+            <p>b. Behavioural traits, including aggression, anxiety, or bite history</p>
+            <p>
+              Failure to disclose critical information may endanger others and will be treated as a serious violation.
+            </p>
+            <p><strong>5. Evaluation &amp; Acceptance</strong></p>
+            <p>Safescape Foundation may:</p>
+            <p>a. Conduct screening calls or visits</p>
+            <p>b. Request additional information or documentation</p>
+            <p>c. Decline intake based on capacity, resources, or suitability</p>
+            <p>Acceptance of surrender is subject to availability and welfare considerations.</p>
+            <p><strong>6. Transfer of Custody</strong></p>
+            <p>
+              Upon acceptance, the Applicant agrees to transfer full custody of the pet to Safescape Foundation. The
+              Applicant relinquishes all ownership rights and claims over the pet thereafter.
+            </p>
+            <p><strong>7. No Reclaim Policy</strong></p>
+            <p>
+              Once the pet is surrendered and accepted, the Applicant shall have no right to reclaim the pet, unless
+              expressly permitted by the Organization at its discretion.
+            </p>
+            <p><strong>8. Financial Contribution (if applicable)</strong></p>
+            <p>Any contribution made by the Applicant towards the pet’s medical care, boarding, or rehabilitation is voluntary.</p>
+            <p><strong>9. Welfare Commitment</strong></p>
+            <p>
+              The Applicant acknowledges that the Organization will act in the best interest of the animal’s welfare,
+              which may include medical treatment, foster care, or adoption placement as deemed appropriate.
+            </p>
+            <p><strong>10. Urgency Misuse</strong></p>
+            <p>
+              The Applicant acknowledges that surrender requests marked as urgent without valid justification may be
+              deprioritized or declined. The Organization reserves the right to assess urgency based on the pet’s
+              welfare and available capacity.
+            </p>
+            <p><strong>11. Consent for Communication</strong></p>
+            <p>
+              The Applicant consents to being contacted by Safescape Foundation for follow-ups, clarifications, or
+              updates regarding the surrender request.
+            </p>
+          </div>
+        </div>
+        <div class="terms-state" id="terms-state">
+          <label class="terms-agree" id="terms-agree-wrap">
+            <input type="checkbox" id="terms-agree" />
+            <span>I agree with all above points</span>
+          </label>
+        </div>
+        <div class="terms-actions" id="terms-actions">
+          <button class="button button-primary" type="button" id="terms-submit">
+            <span class="terms-submit-text">Submit</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/site-config.js?v=20260417_7"></script>
+    <script src="js/site-data.js?v=20260417_7"></script>
+    <script src="js/main.js?v=20260417_7"></script>
   </body>
 </html>

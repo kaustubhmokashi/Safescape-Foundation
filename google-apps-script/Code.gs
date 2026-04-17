@@ -4,7 +4,7 @@ const FORM_DESTINATIONS = {
     sheetName: "Adoption"
   },
   volunteer: {
-    spreadsheetId: "PASTE_SPREADSHEET_ID_HERE",
+    spreadsheetId: "13COsNJ7wLW9B3J7PD-dLOsgAG67KM0cvuRB0oYeQvYo",
     sheetName: "Volunteer"
   },
   foster: {
@@ -13,18 +13,24 @@ const FORM_DESTINATIONS = {
     sheetName: "Foster"
   },
   surrender: {
-    spreadsheetId: "PASTE_SPREADSHEET_ID_HERE",
+    spreadsheetId: "1negRmgGk09WvyTLnZZAyXpBJOLfbny8J5zblGnIaY5k",
     sheetName: "Surrender"
   }
 };
 
 const DEFAULT_NOTIFICATION_RECIPIENT = "contact@safescapefoundation.com";
 const DEFAULT_FOSTER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
-const DEFAULT_FOSTER_UPLOAD_FOLDER_ID = "1flpOyaidWffR0aFycYIKcFo4BhPjqV3r";
+const DEFAULT_FOSTER_UPLOAD_FOLDER_ID = "17i73Sf8FOGjLh9sZO349--_hZJaBF0_m";
+const DEFAULT_SURRENDER_UPLOAD_FOLDER_ID = "1boee-dqJGLPeeXkwfdJNAZkGasImvNM0";
 const FOSTER_UPLOAD_FOLDER_PROPERTY_KEYS = [
   "FOSTER_UPLOAD_FOLDER_ID",
   "UPLOAD_FOLDER_FOSTER",
   "UPLOAD_FOLDER_ID_FOSTER"
+];
+const SURRENDER_UPLOAD_FOLDER_PROPERTY_KEYS = [
+  "SURRENDER_UPLOAD_FOLDER_ID",
+  "UPLOAD_FOLDER_SURRENDER",
+  "UPLOAD_FOLDER_ID_SURRENDER"
 ];
 
 function doPost(e) {
@@ -36,35 +42,68 @@ function doPost(e) {
     return outputJson({ ok: false, error: "Unknown form type" });
   }
 
-  const sheetName = String(payload.sheetName || destination.sheetName || "").trim() || destination.sheetName;
-  const sheet = getOrCreateSheet(destination.spreadsheetId, sheetName, destination.sheetId);
-  const sheetId = sheet.getSheetId();
+  try {
+    const sheetName = String(payload.sheetName || destination.sheetName || "").trim() || destination.sheetName;
+    const sheet = getOrCreateSheet(destination.spreadsheetId, sheetName, destination.sheetId);
+    const sheetId = sheet.getSheetId();
 
-  // "responses" keys are the sheet headers, and must match the exact form question titles.
-  const responses = payload.responses || {};
-  const questionOrder = Array.isArray(payload.questionOrder) ? payload.questionOrder : Object.keys(responses);
-  const uploads = Array.isArray(payload.uploads) ? payload.uploads : [];
-  const headers = questionOrder.map(String).filter(Boolean);
+    // "responses" keys are the sheet headers, and must match the exact form question titles.
+    const responses = payload.responses || {};
+    const questionOrder = Array.isArray(payload.questionOrder) ? payload.questionOrder : Object.keys(responses);
+    const uploads = Array.isArray(payload.uploads) ? payload.uploads : [];
+    const headers = questionOrder.map(String).filter(Boolean);
 
-  if (!headers.length) {
-    return outputJson({ ok: false, error: "No questions were provided." });
+    if (!headers.length) {
+      return outputJson({ ok: false, error: "No questions were provided." });
+    }
+
+    const warnings = [];
+
+    try {
+      processUploadsForSubmission_(formType, destination.spreadsheetId, responses, uploads);
+    } catch (uploadError) {
+      warnings.push("Upload processing skipped: " + String(uploadError && uploadError.message ? uploadError.message : uploadError));
+    }
+
+    const finalHeaders = ensureHeaders(sheet, headers);
+    const row = finalHeaders.map((header) => formatCellValue(responses[header]));
+    sheet.appendRow(row);
+
+    let mergeNotification = null;
+    try {
+      mergeNotification = notifyDocumentMerge_(
+        destination.spreadsheetId,
+        sheetId,
+        sheet.getLastRow(),
+        sheetName,
+        formType,
+        questionOrder,
+        responses
+      );
+    } catch (mergeError) {
+      warnings.push("Document Merge notification skipped: " + String(mergeError && mergeError.message ? mergeError.message : mergeError));
+    }
+
+    let notification = null;
+    try {
+      notification = sendSubmissionNotification_(formType, payload, responses, questionOrder);
+    } catch (mailError) {
+      warnings.push("Email notification skipped: " + String(mailError && mailError.message ? mailError.message : mailError));
+    }
+
+    return outputJson({
+      ok: true,
+      formType: formType,
+      notification: notification,
+      documentMerge: mergeNotification,
+      warnings: warnings
+    });
+  } catch (error) {
+    return outputJson({
+      ok: false,
+      error: String(error && error.message ? error.message : error)
+    });
   }
-
-  processUploadsForSubmission_(formType, destination.spreadsheetId, responses, uploads);
-
-  const finalHeaders = ensureHeaders(sheet, headers);
-  const row = finalHeaders.map((header) => formatCellValue(responses[header]));
-  sheet.appendRow(row);
-
-  const mergeNotification = notifyDocumentMerge_(destination.spreadsheetId, sheetId, sheet.getLastRow(), sheetName, formType, questionOrder, responses);
-  const notification = sendSubmissionNotification_(formType, payload, responses, questionOrder);
-
-  return outputJson({
-    ok: true,
-    formType: formType,
-    notification: notification,
-    documentMerge: mergeNotification
-  });
 }
 
 function parsePayload(e) {
@@ -169,6 +208,21 @@ function resolveUploadFolder_(spreadsheetId, formType) {
     if (DEFAULT_FOSTER_UPLOAD_FOLDER_ID) {
       try {
         return DriveApp.getFolderById(DEFAULT_FOSTER_UPLOAD_FOLDER_ID);
+      } catch (error) {
+        // fall through to the spreadsheet parent folder
+      }
+    }
+  } else if (String(formType || "").trim().toLowerCase() === "surrender") {
+    for (index = 0; index < SURRENDER_UPLOAD_FOLDER_PROPERTY_KEYS.length; index += 1) {
+      folderId = String(scriptProperties.getProperty(SURRENDER_UPLOAD_FOLDER_PROPERTY_KEYS[index]) || "").trim();
+      if (folderId) {
+        return DriveApp.getFolderById(folderId);
+      }
+    }
+
+    if (DEFAULT_SURRENDER_UPLOAD_FOLDER_ID) {
+      try {
+        return DriveApp.getFolderById(DEFAULT_SURRENDER_UPLOAD_FOLDER_ID);
       } catch (error) {
         // fall through to the spreadsheet parent folder
       }

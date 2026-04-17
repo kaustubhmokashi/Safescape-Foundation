@@ -440,13 +440,10 @@ function routeTriggeredExecution_(e, expectedType) {
   }
 
   config = getRequiredConfig_(spreadsheetId);
-  if (config.trigger.mode !== expectedType) {
-    return;
-  }
-
   if (expectedType === 'TIME') {
     touchTriggerRuntime_(spreadsheetId, 'TIME');
     queueResults = processQueuedSubmissionRows_(spreadsheetId);
+    return queueResults;
   }
 
   if (expectedType === 'FORM_SUBMIT') {
@@ -459,19 +456,6 @@ function routeTriggeredExecution_(e, expectedType) {
       force: false,
     });
     return;
-  }
-
-  spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  rows = getSheetRows_(spreadsheet, config.sheetId);
-  processedSet = getProcessedRowSet_(spreadsheet);
-
-  for (index = 0; index < rows.length; index += 1) {
-    if (!processedSet[getRowLogKey_(config.sheetId, rows[index].rowNumber)]) {
-      processRowByNumber_(spreadsheetId, rows[index].rowNumber, {
-        triggerType: 'TIME',
-        force: false,
-      });
-    }
   }
 }
 

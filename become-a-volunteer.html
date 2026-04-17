@@ -7,7 +7,7 @@
     <title>Become a Volunteer | Safescape Foundation</title>
     <meta
       name="description"
-      content="Volunteer with Safescape Foundation and share how you can help with daily rescue and care work."
+      content="Become a volunteer with Safescape Foundation and share how you can support rescue work, outreach, and animal care."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260417_1" />
   </head>
   <body class="form-page-body" data-default-form="volunteer">
     <div class="page-shell">
@@ -32,43 +32,96 @@
       </header>
 
       <main class="form-page-layout form-page-main">
-        <section class="form-page-hero section">
-          <p class="eyebrow">Safescape Form</p>
-          <h1>Become a Volunteer</h1>
-          <p>
-            Let Safescape know how you would like to help, what kind of support you can offer on the ground, and when
-            you are available to contribute.
-          </p>
-          <p class="form-page-note">Your response will go directly to the Safescape team through this new digital home.</p>
-          <a class="button button-secondary" href="index.html#pillars">Back to home</a>
-        </section>
-
-        <section class="form-page-panel section">
-          <div class="form-panel">
+        <section class="form-page-panel form-page-panel-bare section">
+          <div class="form-panel form-panel-bare">
             <div class="form-panel-header">
-              <h3 id="form-title">Become a Volunteer</h3>
-              <p id="form-description">Let Safescape know how you want to help and what time you can commit.</p>
+              <h1 class="form-page-title" id="form-title">Become a Volunteer</h1>
+              <p class="form-page-subtitle" id="form-description">
+                Tell us how you'd like to support Safescape and when you can help.
+              </p>
             </div>
 
-            <form id="lead-form" class="lead-form" method="POST" target="submission-frame" novalidate>
+            <form
+              id="lead-form"
+              class="sheet-form lead-form"
+              data-sheet-form="volunteer"
+              data-sheet-name="Volunteer"
+              novalidate
+            >
               <input type="hidden" name="formType" id="form-type" value="volunteer" />
               <input type="hidden" name="submittedAt" id="submitted-at" value="" />
               <input type="hidden" name="sourcePage" value="become-a-volunteer" />
               <div id="form-fields" class="form-fields"></div>
-              <div class="form-actions-row">
-                <button id="submit-button" class="button button-primary" type="submit">Submit volunteer application</button>
-                <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+              <div class="form-actions-row form-actions-row-stacked">
+                <button class="button button-primary" type="button" id="confirm-button">Confirm</button>
+                <p class="form-status" role="status" aria-live="polite" data-form-status></p>
               </div>
             </form>
           </div>
-
-          <iframe name="submission-frame" title="Hidden form submission target" class="submission-frame"></iframe>
         </section>
       </main>
     </div>
 
-    <script src="js/site-config.js"></script>
-    <script src="js/site-data.js"></script>
-    <script src="js/main.js"></script>
+    <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+      <div class="terms-dialog-card">
+        <div class="terms-dialog-head">
+          <p class="terms-kicker">Safescape Foundation</p>
+          <h2 class="terms-title" id="terms-title">Guidelines for Volunteer Applicants</h2>
+        </div>
+        <div class="terms-scroll" id="terms-scroll" role="document" aria-label="Guidelines for Volunteer Applicants">
+          <div class="terms-content">
+            <p>
+              Thank you for your interest in volunteering with Safescape Foundation! To ensure a smooth application
+              process and meaningful engagement, please read the following guidelines carefully before filling out the
+              form:
+            </p>
+            <p><strong>Eligibility:</strong></p>
+            <p>Volunteers must be at least 18 years old (or provide parental/guardian consent if under 18).</p>
+            <p>A passion for community service, sustainability, and social impact is encouraged.</p>
+            <p>Prior volunteering experience is not required but can be beneficial.</p>
+            <p><strong>Commitment &amp; Availability:</strong></p>
+            <p>Please indicate your realistic availability to help us plan projects effectively.</p>
+            <p>If you commit to an event or task, we expect timely participation and communication.</p>
+            <p>Remote and in-person opportunities are available, so choose based on your comfort level.</p>
+            <p><strong>Code of Conduct:</strong></p>
+            <p>Volunteers should act with integrity, respect, and inclusivity towards all individuals.</p>
+            <p>Any form of discrimination, harassment, or misconduct will not be tolerated.</p>
+            <p>Volunteers must follow the instructions of coordinators and adhere to organizational policies.</p>
+            <p><strong>Confidentiality &amp; Media Consent:</strong></p>
+            <p>Some volunteer roles may involve handling sensitive information; confidentiality is required.</p>
+            <p>
+              Safescape Foundation may capture photos/videos during activities for promotional purposes. By signing the
+              form, you consent to their use unless you specify otherwise.
+            </p>
+            <p><strong>Health &amp; Safety:</strong></p>
+            <p>Volunteers participating in physical activities must ensure they are in good health and follow safety protocols.</p>
+            <p>If you have any medical conditions or special needs, please inform us in advance.</p>
+            <p><strong>Application Process:</strong></p>
+            <p>After submitting your form, our team will review your application.</p>
+            <p>Shortlisted candidates may be contacted for an orientation or interview (if applicable).</p>
+            <p>You will receive confirmation and details on your assigned role if selected.</p>
+            <p><strong>Contact &amp; Queries:</strong></p>
+            <p>For any questions or additional information, feel free to contact us at safescapefoundation@gmail.com.</p>
+            <p>By submitting this form, you acknowledge that you have read and understood these guidelines.</p>
+            <p>Thank you for your willingness to support our mission!</p>
+          </div>
+        </div>
+        <div class="terms-state" id="terms-state">
+          <label class="terms-agree" id="terms-agree-wrap">
+            <input type="checkbox" id="terms-agree" />
+            <span>I agree with all above points</span>
+          </label>
+        </div>
+        <div class="terms-actions" id="terms-actions">
+          <button class="button button-primary" type="button" id="terms-submit">
+            <span class="terms-submit-text">Submit</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/site-config.js?v=20260417_1"></script>
+    <script src="js/site-data.js?v=20260417_1"></script>
+    <script src="js/main.js?v=20260417_1"></script>
   </body>
 </html>

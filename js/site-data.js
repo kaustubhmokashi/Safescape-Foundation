@@ -128,27 +128,58 @@ window.SAFESCAPE_SITE_DATA = {
     },
     volunteer: {
       title: "Become a Volunteer",
-      description: "Let Safescape know how you want to help and what time you can commit.",
-      submitLabel: "Submit volunteer application",
-      fields: [
-        { name: "fullName", label: "Full name", type: "text", required: true },
-        { name: "email", label: "Email address", type: "email", required: true },
-        { name: "phone", label: "Phone number", type: "tel", required: true },
-        { name: "city", label: "City", type: "text", required: true },
+      description: "Tell us how you'd like to support Safescape and when you can help.",
+      submitLabel: "Confirm",
+      sections: [
         {
-          name: "availability",
-          label: "Availability",
-          type: "select",
-          required: true,
-          options: ["Weekdays", "Weekends", "Flexible", "Specific dates only"]
+          title: "Become a volunteer!",
+          note: "Tell us a bit about yourself so we can stay in touch.",
+          fields: [
+            { name: "fullName", label: "Name", type: "text", required: true, fullWidth: true },
+            { name: "age", label: "Age", type: "number", required: true, fullWidth: true },
+            {
+              name: "gender",
+              label: "Gender",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Male", "Female"]
+            },
+            { name: "phone", label: "Phone number", type: "tel", required: true, fullWidth: true },
+            { name: "email", label: "Email Address", type: "email", required: true, fullWidth: true }
+          ]
         },
-        { name: "skills", label: "Relevant skills", type: "text", required: false },
         {
-          name: "message",
-          label: "How would you like to help?",
-          type: "textarea",
-          required: true,
-          fullWidth: true
+          title: "Volunteer interests",
+          note: "Which areas of volunteering interest you the most? ( Check all that apply )",
+          fields: [
+            {
+              name: "volunteerInterests",
+              label: "Which areas of volunteering interest you the most? ( Check all that apply )",
+              type: "choice",
+              optionType: "checkbox",
+              required: true,
+              options: [
+                "Community Outreach",
+                "Environmental Initiatives",
+                "Education & Mentorship",
+                "Fundraising & Event planning",
+                "Socia media & awareness campaigns",
+                "Adminitrative Support",
+                "Other"
+              ],
+              otherField: { id: "volunteer_interests_other", name: "volunteer_interests_other", label: "Other:", placeholder: "Please specify" }
+            }
+          ]
+        },
+        {
+          title: "Commitment",
+          note: "Please let us know your time availability and the skills you bring.",
+          fields: [
+            { name: "hoursPerWeek", label: "How many hours week can you commit to volunteering?", type: "text", required: true, fullWidth: true },
+            { name: "skills", label: "What skills or expertise can you bring to Safescape Foundation?", type: "textarea", required: false, fullWidth: true },
+            { name: "questions", label: "Do you have any questions or suggestions for us?", type: "textarea", required: false, fullWidth: true }
+          ]
         }
       ]
     },
@@ -332,29 +363,139 @@ window.SAFESCAPE_SITE_DATA = {
     },
     surrender: {
       title: "Application to Surrender",
-      description: "Share the pet details so Safescape can review the request responsibly.",
-      submitLabel: "Submit surrender application",
-      fields: [
-        { name: "fullName", label: "Your full name", type: "text", required: true },
-        { name: "email", label: "Email address", type: "email", required: true },
-        { name: "phone", label: "Phone number", type: "tel", required: true },
-        { name: "city", label: "City", type: "text", required: true },
-        { name: "petName", label: "Pet name", type: "text", required: true },
-        { name: "petBreed", label: "Breed", type: "text", required: false },
-        { name: "petAge", label: "Age", type: "text", required: false },
+      description: "Tell us about the pet and the reasons behind the request.",
+      submitLabel: "Confirm",
+      sections: [
         {
-          name: "reason",
-          label: "Reason for surrender",
-          type: "textarea",
-          required: true,
-          fullWidth: true
+          title: "Application to Surrender",
+          note: "Tell us about yourself and the pet so Safescape can review the request carefully.",
+          fields: [
+            { name: "fullName", label: "Applicant's Name", type: "text", required: true, fullWidth: true },
+            { name: "phone", label: "Contact Number", type: "tel", required: true, fullWidth: true },
+            { name: "email", label: "Email address", type: "email", required: true, fullWidth: true },
+            { name: "address", label: "Address", type: "textarea", required: true, fullWidth: true },
+            {
+              name: "govtIdProof",
+              label: "Upload Govt. ID Proof",
+              type: "file",
+              required: true,
+              multiple: true,
+              maxFiles: 5,
+              accept: ".jpg,.jpeg,.png,.pdf",
+              maxMb: 10,
+              help: "You can upload multiple JPG, PNG, or PDF files up to 10 MB each."
+            }
+          ]
         },
         {
-          name: "medicalNotes",
-          label: "Medical or behavioural notes",
-          type: "textarea",
-          required: false,
-          fullWidth: true
+          title: "Pet details",
+          note: "Share the pet’s basic details and location.",
+          fields: [
+            { name: "petName", label: "Pet's Name", type: "text", required: true, fullWidth: true },
+            { name: "petAge", label: "Pet's Age", type: "text", required: true, fullWidth: true },
+            { name: "petBreed", label: "Pet's Breed", type: "text", required: true, fullWidth: true },
+            {
+              name: "petGender",
+              label: "Pet's Gender",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Male", "Female", "I don't know"]
+            },
+            { name: "location", label: "Location", type: "text", required: true, fullWidth: true, help: "Area and City" },
+            {
+              name: "neuteredSpayed",
+              label: "Is the pet Neutered / Spayed ?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No", "I don't know"]
+            }
+          ]
+        },
+        {
+          title: "Health and behaviour",
+          note: "Please share the full history you know about the pet.",
+          fields: [
+            {
+              name: "medicalHistory",
+              label: "Pet's Medical history",
+              type: "textarea",
+              required: true,
+              fullWidth: true,
+              help: "For ex: Diet restrictions, allergies, accidental / terminal illness, injuries, etc."
+            },
+            {
+              name: "biteHistory",
+              label: "In your knowledge, has the pet bitten/harmed/shown aggression towards anyone in the past?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: [
+                "the pet has NOT bitten / harmed / shown aggression towards anyone in the past",
+                "the pet has bitten or harmed and/or shown aggression towards anyone in the past"
+              ]
+            }
+          ]
+        },
+        {
+          title: "Surrender request",
+          note: "Add the reason for surrender and the supporting photos.",
+          fields: [
+            {
+              name: "reason",
+              label: "Reason for surrender",
+              type: "textarea",
+              required: true,
+              fullWidth: true
+            },
+            {
+              name: "vaccinationRecord",
+              label: "Vaccination record photo",
+              type: "file",
+              required: false,
+              multiple: true,
+              maxFiles: 5,
+              accept: ".jpg,.jpeg,.png,.pdf",
+              maxMb: 10,
+              help: "You can upload multiple JPG, PNG, or PDF files up to 10 MB each."
+            },
+            {
+              name: "petPhoto",
+              label: "Pet's Photo",
+              type: "file",
+              required: true,
+              multiple: true,
+              maxFiles: 5,
+              accept: ".jpg,.jpeg,.png",
+              maxMb: 10,
+              help: "You can upload multiple JPG or PNG photos up to 10 MB each."
+            },
+            {
+              name: "vaccinationStatus",
+              label: "Vaccination status",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Vaccinated", "Not Vaccinated", "Partially Vaccinated"]
+            }
+          ]
+        },
+        {
+          title: "Additional notes",
+          note: "Share anything else the team should know.",
+          fields: [
+            { name: "specialComments", label: "Special Comments ( if any )", type: "textarea", required: false, fullWidth: true },
+            {
+              name: "friendlyWithDogs",
+              label: "Friendly with other dogs ?",
+              type: "choice",
+              optionType: "radio",
+              required: true,
+              options: ["Yes", "No"]
+            },
+            { name: "behaviouralIssues", label: "Behavioural issues ( if any )", type: "textarea", required: false, fullWidth: true }
+          ]
         }
       ]
     }

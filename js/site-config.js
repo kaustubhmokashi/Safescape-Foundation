@@ -1,6 +1,6 @@
 window.SAFESCAPE_CONFIG = {
   forms: {
-    webAppUrl: "https://script.google.com/macros/s/AKfycbymIYrqeLhkQlGCAtRogAPuEEW20uBKvmVp2KewTk-biAmODUmaAeSwO636wZEwLqNO/exec",
+    webAppUrl: "https://script.google.com/macros/s/AKfycbyETNyN3mwW5f_6y0Br5WWaIysZ17ijwWRLizwSP2y34e_OH5mK3bPyw5SxtiWHWJFL/exec",
     successMessage: "Thanks. Your form was sent successfully.",
     missingConfigMessage:
       "This form is being connected on the new site. If you need immediate help, please contact Safescape directly by phone or email."
