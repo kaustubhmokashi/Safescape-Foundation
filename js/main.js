@@ -905,7 +905,7 @@
 
     const calendarLead = document.createElement("p");
     calendarLead.className = "section-note";
-    calendarLead.textContent = "Google calendar with blocked dates greyed out. Select up to 7 dates.";
+    calendarLead.textContent = "Select upto 7 dates.";
     calendarPanel.appendChild(calendarLead);
 
     const calendarNav = document.createElement("div");
