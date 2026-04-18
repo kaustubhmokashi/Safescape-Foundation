@@ -256,6 +256,7 @@ function syncFoodCalendarBlockedDates_(payload) {
   var sourcePage = String((payload && payload.sourcePage) || "").trim();
   var occasion = String((payload && payload.occasion) || "").trim();
   var email = String((payload && payload.email) || "").trim();
+  var location = "Safescape Foundation, V.E Store, No.165/1, near GV school A, S.Bingipura, Karnataka 560105, India";
   var created = [];
   var title = occasion ? (occasion + " | Food Sponsorship | Safescape Foundation") : "Food Sponsorship | Safescape Foundation";
   var description = [
@@ -280,6 +281,9 @@ function syncFoodCalendarBlockedDates_(payload) {
     });
     if (event && email) {
       event.addGuest(email);
+    }
+    if (event) {
+      event.setLocation(location);
     }
     created.push(dateKey);
   });
