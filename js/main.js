@@ -635,6 +635,10 @@
       state.daysPanel.hidden = mode !== "days";
       state.daysPanel.classList.toggle("is-hidden", mode !== "days");
     }
+    if (state.detailsPanel) {
+      state.detailsPanel.hidden = mode !== "calendar";
+      state.detailsPanel.classList.toggle("is-hidden", mode !== "calendar");
+    }
     if (state.selectedDatesInput) {
       state.selectedDatesInput.required = mode === "calendar";
       state.selectedDatesInput.disabled = mode !== "calendar";
@@ -644,6 +648,9 @@
       state.daysInput.required = mode === "days";
       state.daysInput.disabled = mode !== "days";
       state.daysInput.dataset.q = mode === "days" ? "Number of days" : "";
+    }
+    if (state.confirmButton) {
+      state.confirmButton.textContent = mode === "calendar" ? "Confirm" : "Goto Payment link";
     }
   }
 
@@ -823,7 +830,7 @@
         ? Boolean(normalizeValue(selectedDatesInput && selectedDatesInput.value))
         : Boolean(daysInput && daysInput.checkValidity() && Number(normalizeValue(daysInput.value)) > 0);
 
-    confirmButton.disabled = !(occasionOk && emailOk && modeOk);
+    confirmButton.disabled = mode === "calendar" ? !(occasionOk && emailOk && modeOk) : !modeOk;
   }
 
   function setupFoodSponsorshipMode(formEl) {
@@ -997,7 +1004,7 @@
     formFields.appendChild(modeSection);
 
     const detailsSection = document.createElement("div");
-    detailsSection.className = "form-section";
+    detailsSection.className = "form-section food-sponsorship-details-section";
     detailsSection.style.display = "grid";
     detailsSection.style.gap = "32px";
 
@@ -1028,8 +1035,6 @@
     );
 
     formFields.appendChild(detailsSection);
-    setupFoodSponsorshipMode(form);
-
     const state = getFoodSponsorshipState(form);
     state.calendarPanel = calendarPanel;
     state.daysPanel = daysPanel;
@@ -1042,6 +1047,9 @@
     state.calendarError = calendarError;
     state.confirmButton = document.getElementById("confirm-button");
     state.toggleInput = toggle;
+    state.detailsPanel = detailsSection;
+
+    setupFoodSponsorshipMode(form);
 
     prevButton.addEventListener("click", () => {
       state.monthOffset = Math.max(0, state.monthOffset - 1);
@@ -1343,9 +1351,14 @@
 
   function resolveFoodSponsorshipPaymentUrl(formEl) {
     const foodSponsorship = getFoodSponsorshipConfig();
+    const mode = getFoodSponsorshipVisibleMode(formEl);
     const emailInput = formEl ? formEl.querySelector("#email") : null;
     const emailValue = normalizeValue(emailInput && emailInput.value);
+    const directPaymentUrl = String(foodSponsorship.directPaymentUrl || "").trim();
     const testPaymentUrl = String(foodSponsorship.testPaymentUrl || "").trim();
+    if (mode === "days" && directPaymentUrl) {
+      return directPaymentUrl;
+    }
     if (emailValue.toLowerCase() === "0000@0000.com" && testPaymentUrl) {
       return testPaymentUrl;
     }
@@ -2785,6 +2798,23 @@
           if (statusEl) {
             statusEl.textContent = "";
             statusEl.classList.remove("is-error", "is-success");
+          }
+
+          if (activeFormType === "foodSponsorship" && getFoodSponsorshipVisibleMode(sheetForm) === "days") {
+            const paymentUrl = resolveFoodSponsorshipPaymentUrl(sheetForm);
+            if (!paymentUrl) {
+              if (statusEl) {
+                statusEl.textContent = "Payment link is not configured yet.";
+                statusEl.classList.add("is-error");
+              }
+              return;
+            }
+            if (statusEl) {
+              statusEl.textContent = "Redirecting to Payment";
+              statusEl.classList.remove("is-error", "is-success");
+            }
+            window.location.href = paymentUrl;
+            return;
           }
 
           await loadTermsIntoDialog();

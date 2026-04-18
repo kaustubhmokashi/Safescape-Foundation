@@ -11,6 +11,7 @@ window.SAFESCAPE_CONFIG = {
     blockedDatesReadUrl:
       "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMXYDilQMqSc1Lgef_2iL4un1JD3FG3ntNhIOtAmMRgoTR0kKA-GFdtJs8b4HxepK4wckVXtF-_KcGXuneweUAefQtsmIol1usuPhQQcGum9rqhVsPnO8npz43TOVWFAiED_6URw53-g1AfWuwYYMrNfCfjMrAHmPb3ps5RZMRInkvMNSGL1LlDteVz2zwxnGGLP22MHbrMHwLGGLX5DWBjZ5S3Pbwm30SCyJvqr575JJ5v37eWNvxM1v39rIgifueuaqie8eyQj6yTsQZsrE0NxIFVpzbQknu7gVgC5HMT-FqqeI9ISXl0O9qK8nA&lib=MCDjgDbD8JQMRr-AZC7F9eUHZDfQxY1yo",
     blockedDates: [],
+    directPaymentUrl: "https://rzp.io/l/WUqtF64zP2",
     testPaymentUrl: "https://rzp.io/rzp/9LIeGrG",
     paymentUrl: "",
     paymentUrlsByDays: {
