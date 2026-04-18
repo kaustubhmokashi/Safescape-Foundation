@@ -3073,6 +3073,10 @@
   }
 
   function setupCursorStamping() {
+    if (document.body.classList.contains("form-page-body") && window.matchMedia("(max-width: 640px)").matches) {
+      return;
+    }
+
     // Use pointer events so stamps work on touch + mouse, and only stamp on a tap/click (not scroll).
     if (typeof window.PointerEvent !== "function") {
       document.addEventListener(
