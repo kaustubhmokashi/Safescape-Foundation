@@ -430,6 +430,21 @@ button {
   box-shadow: 0 12px 28px rgba(62, 89, 16, 0.28);
 }
 
+.button:disabled,
+.button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: saturate(0.7) grayscale(0.15);
+}
+
+.button-primary:disabled,
+.button-primary[disabled] {
+  background: linear-gradient(135deg, rgba(62, 89, 16, 0.78), rgba(109, 138, 34, 0.78));
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .button-secondary {
   background: rgba(255, 255, 255, 0.78);
   color: var(--brand-deep);
@@ -2617,7 +2632,7 @@ a.footer-donate-button:hover {
 }
 
 .terms-actions .button:disabled {
-  opacity: 0.48;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;

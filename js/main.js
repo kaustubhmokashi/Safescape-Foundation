@@ -626,6 +626,8 @@
   function updateFoodSponsorshipMode(formEl) {
     const state = getFoodSponsorshipState(formEl);
     const mode = getFoodSponsorshipVisibleMode(formEl);
+    const occasionInput = formEl ? formEl.querySelector("#occasion") : null;
+    const emailInput = formEl ? formEl.querySelector("#email") : null;
 
     if (state.calendarPanel) {
       state.calendarPanel.hidden = mode !== "calendar";
@@ -648,6 +650,15 @@
       state.daysInput.required = mode === "days";
       state.daysInput.disabled = mode !== "days";
       state.daysInput.dataset.q = mode === "days" ? "Number of days" : "";
+    }
+    if (occasionInput) {
+      occasionInput.disabled = mode !== "calendar";
+      occasionInput.required = false;
+    }
+    if (emailInput) {
+      emailInput.disabled = mode !== "calendar";
+      emailInput.required = mode === "calendar";
+      emailInput.dataset.q = mode === "calendar" ? "Email" : "";
     }
     if (state.confirmButton) {
       state.confirmButton.textContent = mode === "calendar" ? "Confirm" : "Goto Payment link";
@@ -828,7 +839,7 @@
     const modeOk =
       mode === "calendar"
         ? Boolean(normalizeValue(selectedDatesInput && selectedDatesInput.value))
-        : Boolean(daysInput && daysInput.checkValidity() && Number(normalizeValue(daysInput.value)) > 0);
+        : true;
 
     confirmButton.disabled = mode === "calendar" ? !(occasionOk && emailOk && modeOk) : !modeOk;
   }
@@ -912,7 +923,7 @@
 
     const calendarLead = document.createElement("p");
     calendarLead.className = "section-note";
-    calendarLead.textContent = "Select upto 7 dates.";
+    calendarLead.textContent = "Select upto 7 dates at a time";
     calendarPanel.appendChild(calendarLead);
 
     const calendarNav = document.createElement("div");
@@ -973,32 +984,12 @@
     daysPanel.className = "food-sponsorship-mode-panel";
     daysPanel.dataset.foodMode = "days";
     daysPanel.hidden = true;
-    const daysTitle = document.createElement("p");
-    daysTitle.className = "section-note";
-    daysTitle.textContent = "Number of days";
-    daysPanel.appendChild(daysTitle);
-    const daysField = buildField(
-      {
-        name: "sponsorshipDays",
-        label: "Number of days",
-        type: "number",
-        required: true,
-        fullWidth: true,
-        min: 1,
-        max: 5,
-        help: "Use this if you are not choosing a specific date."
-      },
-      prefill
-    );
-    daysField.id = "food-sponsorship-days-wrap";
-    const daysInput = daysField.querySelector("input");
-    if (daysInput) {
-      daysInput.id = "food-sponsorship-days";
-      daysInput.dataset.q = "Number of days";
-      daysInput.min = "1";
-      daysInput.max = "5";
-    }
-    daysPanel.appendChild(daysField);
+    const daysCopy = document.createElement("p");
+    daysCopy.className = "section-note";
+    daysCopy.style.whiteSpace = "pre-line";
+    daysCopy.textContent =
+      "Pets don’t understand dates or calendars—they simply understand love, care, and the comfort of being looked after every single day. \u{1F49B}\n\nBy choosing to sponsor their meals, you’re making sure they stay safe, nourished, and cared for—day after day. It’s a simple choice that brings them consistent love and support.\n\nYou can continue and sponsor meals for the number of days you’d like using the link below.";
+    daysPanel.appendChild(daysCopy);
     modeSection.appendChild(daysPanel);
 
     formFields.appendChild(modeSection);
@@ -1039,7 +1030,7 @@
     state.calendarPanel = calendarPanel;
     state.daysPanel = daysPanel;
     state.selectedDatesInput = selectedDatesInput;
-    state.daysInput = daysInput;
+    state.daysInput = null;
     state.calendarGrid = calendarGrid;
     state.calendarTitle = calendarTitle;
     state.selectedSummary = selectedSummary;
