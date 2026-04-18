@@ -361,6 +361,12 @@ window.SAFESCAPE_SITE_DATA = {
         }
       ]
     },
+    foodSponsorship: {
+      title: "Food Sponsorship",
+      description: "Choose an available sponsorship date and continue once the payment link is ready.",
+      submitLabel: "Confirm",
+      sections: []
+    },
     surrender: {
       title: "Application to Surrender",
       description: "Tell us about the pet and the reasons behind the request.",

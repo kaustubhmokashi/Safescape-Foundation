@@ -27,11 +27,14 @@
     window.matchMedia &&
     window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   const adoptionTestFillTrigger = "0000";
+  const foodCalendarSyncFallbackUrl =
+    "https://script.google.com/macros/s/AKfycby4GeBE20UNjrquVn2NlhrKtN3cNUIliUPU8LO4XYp0RTV_BSvLFR4w8rD_9B5IH87O9A/exec";
 
   let activeFormType = "adoption";
   let pendingStatusTimer = null;
   let pendingUploadStateMap = new WeakMap();
   let fileUploadSelectionMap = new WeakMap();
+  let foodSponsorshipStateMap = new WeakMap();
   let cursorElement = null;
   let cursorImage = null;
   let cursorIsInverted = false;
@@ -356,6 +359,33 @@
       sectionEl.appendChild(list);
     }
 
+    if (section.embed === "foodCalendar") {
+      const embedWrap = document.createElement("div");
+      embedWrap.className = "calendar-embed-block";
+      const calendarUrl = String((config.foodSponsorship && config.foodSponsorship.calendarEmbedUrl) || "").trim();
+      if (calendarUrl) {
+        embedWrap.innerHTML = `
+          <iframe
+            class="google-calendar-iframe"
+            src="${escapeHtml(calendarUrl)}"
+            title="Safescape Google Calendar"
+            loading="lazy"
+            allowfullscreen
+          ></iframe>
+        `;
+      } else {
+        embedWrap.innerHTML = `
+          <div class="calendar-placeholder">
+            <p class="calendar-placeholder-title">Google Calendar embed URL not configured yet.</p>
+            <p class="calendar-placeholder-copy">
+              Add the public calendar embed URL in <code>js/site-config.js</code> to show blocked dates here.
+            </p>
+          </div>
+        `;
+      }
+      sectionEl.appendChild(embedWrap);
+    }
+
     const fields = document.createElement("div");
     fields.className = "form-fields";
 
@@ -369,6 +399,662 @@
 
     sectionEl.appendChild(fields);
     return sectionEl;
+  }
+
+  function getFoodSponsorshipState(formEl) {
+    let state = foodSponsorshipStateMap.get(formEl);
+    if (!state) {
+      state = {
+        monthOffset: 0,
+        blockedDates: new Set(),
+        selectedDates: [],
+        calendarReady: false,
+        selectedDatesInput: null,
+        daysInput: null,
+        confirmButton: null,
+        toggleInput: null,
+        calendarGrid: null,
+        calendarTitle: null,
+        selectedSummary: null,
+        daysPanel: null,
+        calendarPanel: null
+      };
+      foodSponsorshipStateMap.set(formEl, state);
+    }
+    return state;
+  }
+
+  function getFoodSponsorshipStateFromControl(control) {
+    if (control && control.form) {
+      return getFoodSponsorshipState(control.form);
+    }
+    return getFoodSponsorshipState(form);
+  }
+
+  function getFoodSponsorshipConfig() {
+    return (config && config.foodSponsorship) || {};
+  }
+
+  function buildFoodSponsorshipEndpoint(action) {
+    const foodConfig = getFoodSponsorshipConfig();
+    const readUrl = String(foodConfig.blockedDatesReadUrl || "").trim();
+    const directUrl = String(
+      action === "foodCalendarDates"
+        ? readUrl || foodConfig.blockedDatesUrl || foodCalendarSyncFallbackUrl
+        : foodConfig.blockedDatesUrl || foodCalendarSyncFallbackUrl || ""
+    ).trim();
+    const baseUrl = directUrl || String((config.forms && config.forms.webAppUrl) || "").trim();
+
+    if (!baseUrl) {
+      return "";
+    }
+
+    try {
+      const url = new URL(baseUrl, window.location.href);
+      url.searchParams.set("action", action);
+      return url.toString();
+    } catch (error) {
+      const separator = baseUrl.includes("?") ? "&" : "?";
+      return `${baseUrl}${separator}action=${encodeURIComponent(action)}`;
+    }
+  }
+
+  function normalizeDateKey(value) {
+    if (!value) {
+      return "";
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return "";
+    }
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function formatCalendarDateLabel(dateKey) {
+    if (!dateKey) {
+      return "";
+    }
+    const parsed = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return dateKey;
+    }
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
+    }).format(parsed);
+  }
+
+  function getFoodSponsorshipBlockedDatesFromConfig() {
+    const foodConfig = getFoodSponsorshipConfig();
+    const blockedDates = new Set();
+    const directList = Array.isArray(foodConfig.blockedDates) ? foodConfig.blockedDates : [];
+    directList.forEach((dateValue) => {
+      const key = normalizeDateKey(dateValue);
+      if (key) {
+        blockedDates.add(key);
+      }
+    });
+    return blockedDates;
+  }
+
+  function getFoodSponsorshipBlockedDatesCacheKey() {
+    return "safescape.foodSponsorship.blockedDates";
+  }
+
+  function clearFoodSponsorshipBlockedDatesCache() {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    try {
+      window.localStorage.removeItem(getFoodSponsorshipBlockedDatesCacheKey());
+    } catch (error) {
+      // ignore cache clear issues
+    }
+  }
+
+  async function loadFoodSponsorshipBlockedDatesJsonp(url) {
+    const response = await fetch(url, {
+      cache: "no-store",
+      credentials: "omit"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Blocked dates request failed (${response.status}).`);
+    }
+
+    const text = await response.text();
+    const trimmed = String(text || "").trim();
+    if (!trimmed) {
+      throw new Error("Blocked dates response was empty.");
+    }
+
+    try {
+      return JSON.parse(trimmed);
+    } catch (parseError) {
+      const callbackMatch = trimmed.match(/^[^(]+\(([\s\S]*)\);?$/);
+      if (callbackMatch) {
+        return JSON.parse(callbackMatch[1]);
+      }
+      throw new Error("Blocked dates response was not valid JSON.");
+    }
+  }
+
+  async function loadFoodSponsorshipBlockedDatesWithRetry(url, attempts) {
+    const maxAttempts = Math.max(1, Number(attempts) || 1);
+    let lastError = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        return await loadFoodSponsorshipBlockedDatesJsonp(url);
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
+      }
+    }
+
+    throw lastError || new Error("Blocked dates request failed.");
+  }
+
+  async function hydrateFoodSponsorshipBlockedDates(formEl) {
+    const state = getFoodSponsorshipState(formEl);
+    const foodConfig = getFoodSponsorshipConfig();
+    const blockedDates = getFoodSponsorshipBlockedDatesFromConfig();
+    const blockedDatesUrl = buildFoodSponsorshipEndpoint("foodCalendarDates");
+
+    clearFoodSponsorshipBlockedDatesCache();
+
+    if (state.calendarPanel) {
+      state.calendarPanel.classList.add("is-loading");
+    }
+    if (state.calendarLoading) {
+      state.calendarLoading.hidden = false;
+    }
+
+    try {
+      if (blockedDatesUrl) {
+        const payload = await loadFoodSponsorshipBlockedDatesWithRetry(blockedDatesUrl, 3);
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload && payload.data)
+            ? payload.data
+            : Array.isArray(payload && payload.blockedDates)
+              ? payload.blockedDates
+              : [];
+        list.forEach((dateValue) => {
+          const key = normalizeDateKey(dateValue);
+          if (key) {
+            blockedDates.add(key);
+          }
+        });
+      }
+    } catch (error) {
+    } finally {
+      state.blockedDates = blockedDates;
+      state.calendarReady = true;
+      if (state.calendarLoading) {
+        state.calendarLoading.hidden = true;
+      }
+      if (state.calendarPanel) {
+        state.calendarPanel.classList.remove("is-loading");
+      }
+      if (state.calendarError) {
+        state.calendarError.hidden = false;
+        state.calendarError.textContent = blockedDatesUrl && blockedDates.size === 0
+          ? "Blocked dates could not be loaded right now. Please refresh after the calendar sync app is redeployed."
+          : "";
+        if (!blockedDatesUrl || blockedDates.size > 0) {
+          state.calendarError.hidden = true;
+        }
+      }
+      renderFoodSponsorshipCalendar(formEl);
+    }
+
+    return;
+  }
+
+  function getFoodSponsorshipVisibleMode(formEl) {
+    const toggle = formEl ? formEl.querySelector("#food-sponsor-specific-date") : null;
+    return !toggle || toggle.checked ? "calendar" : "days";
+  }
+
+  function updateFoodSponsorshipMode(formEl) {
+    const state = getFoodSponsorshipState(formEl);
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+
+    if (state.calendarPanel) {
+      state.calendarPanel.hidden = mode !== "calendar";
+      state.calendarPanel.classList.toggle("is-hidden", mode !== "calendar");
+    }
+    if (state.daysPanel) {
+      state.daysPanel.hidden = mode !== "days";
+      state.daysPanel.classList.toggle("is-hidden", mode !== "days");
+    }
+    if (state.selectedDatesInput) {
+      state.selectedDatesInput.required = mode === "calendar";
+      state.selectedDatesInput.disabled = mode !== "calendar";
+      state.selectedDatesInput.dataset.q = mode === "calendar" ? "Selected dates" : "";
+    }
+    if (state.daysInput) {
+      state.daysInput.required = mode === "days";
+      state.daysInput.disabled = mode !== "days";
+      state.daysInput.dataset.q = mode === "days" ? "Number of days" : "";
+    }
+  }
+
+  function setFoodSponsorshipSelectedDates(formEl, selectedDates) {
+    const state = getFoodSponsorshipState(formEl);
+    const uniqueDates = Array.from(new Set((Array.isArray(selectedDates) ? selectedDates : []).filter(Boolean))).sort();
+    state.selectedDates = uniqueDates;
+
+    if (state.selectedDatesInput) {
+      state.selectedDatesInput.value = uniqueDates.join(", ");
+    }
+
+    if (state.selectedSummary) {
+      if (!uniqueDates.length) {
+        state.selectedSummary.textContent = "No dates selected yet.";
+      } else if (uniqueDates.length === 1) {
+        state.selectedSummary.textContent = `${formatCalendarDateLabel(uniqueDates[0])} selected.`;
+      } else {
+        state.selectedSummary.textContent = `${uniqueDates.length} dates selected.`;
+      }
+    }
+    if (state.calendarError) {
+      state.calendarError.textContent = "";
+      state.calendarError.hidden = true;
+    }
+
+    syncFoodSponsorshipConfirmState(formEl);
+  }
+
+  function renderFoodSponsorshipCalendar(formEl) {
+    const state = getFoodSponsorshipState(formEl);
+    if (!state.calendarGrid || !state.calendarTitle) {
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const monthDate = new Date(today);
+    monthDate.setMonth(monthDate.getMonth() + state.monthOffset);
+    monthDate.setDate(1);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const monthLabel = new Intl.DateTimeFormat(undefined, {
+      month: "long",
+      year: "numeric"
+    }).format(monthDate);
+
+    state.calendarTitle.textContent = monthLabel;
+    state.calendarGrid.innerHTML = "";
+
+    const weekdayRow = document.createElement("div");
+    weekdayRow.className = "food-calendar-weekdays";
+    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((label) => {
+      const day = document.createElement("span");
+      day.textContent = label;
+      weekdayRow.appendChild(day);
+    });
+    state.calendarGrid.appendChild(weekdayRow);
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const selected = new Set(state.selectedDates);
+    const blocked = state.blockedDates || new Set();
+    const cells = [];
+
+    for (let index = 0; index < firstDayIndex; index += 1) {
+      cells.push(null);
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day);
+      const key = normalizeDateKey(date);
+      cells.push({
+        key,
+        day,
+        isPast: date < today,
+        isBlocked: blocked.has(key),
+        isSelected: selected.has(key),
+        label: formatCalendarDateLabel(key)
+      });
+    }
+
+    const grid = document.createElement("div");
+    grid.className = "food-calendar-grid";
+
+    cells.forEach((cell) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "food-calendar-day";
+
+      if (!cell) {
+        button.classList.add("is-empty");
+        button.disabled = true;
+        grid.appendChild(button);
+        return;
+      }
+
+      button.textContent = String(cell.day);
+      button.dataset.date = cell.key;
+      button.title = cell.isBlocked ? `${cell.label} blocked` : cell.label;
+      button.setAttribute("aria-label", cell.isBlocked ? `${cell.label} blocked` : cell.label);
+
+      if (cell.isPast) {
+        button.classList.add("is-past");
+        button.disabled = true;
+      } else if (cell.isBlocked) {
+        button.classList.add("is-blocked");
+        button.disabled = true;
+      }
+
+      if (cell.isBlocked) {
+        button.innerHTML =
+          '<img class="food-calendar-day-icon" src="assets/cursor.svg" alt="" aria-hidden="true" />';
+      } else {
+        button.innerHTML = `<span class="food-calendar-day-number">${cell.day}</span>`;
+      }
+
+      if (cell.isSelected) {
+        button.classList.add("is-selected");
+      }
+
+      button.addEventListener("click", () => {
+        const current = new Set(state.selectedDates);
+        if (current.has(cell.key)) {
+          current.delete(cell.key);
+        } else {
+          if (current.size >= 7) {
+            if (state.selectedSummary) {
+              state.selectedSummary.textContent = "You can select up to 7 dates.";
+            }
+            return;
+          }
+          current.add(cell.key);
+        }
+        setFoodSponsorshipSelectedDates(formEl, Array.from(current));
+        renderFoodSponsorshipCalendar(formEl);
+      });
+
+      grid.appendChild(button);
+    });
+
+    state.calendarGrid.appendChild(grid);
+    updateFoodSponsorshipMode(formEl);
+    if (!state.selectedDates.length) {
+      setFoodSponsorshipSelectedDates(formEl, []);
+    } else if (state.selectedSummary) {
+      state.selectedSummary.textContent =
+        state.selectedDates.length === 1
+          ? `${formatCalendarDateLabel(state.selectedDates[0])} selected.`
+          : `${state.selectedDates.length} dates selected.`;
+    }
+  }
+
+  function syncFoodSponsorshipConfirmState(formEl) {
+    if (!formEl) {
+      return;
+    }
+    const confirmButton = formEl.querySelector("#confirm-button");
+    if (!confirmButton) {
+      return;
+    }
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+    const selectedDatesInput = formEl.querySelector("#food-selected-dates");
+    const daysInput = formEl.querySelector("#food-sponsorship-days");
+    const occasionInput = formEl.querySelector("#occasion");
+    const emailInput = formEl.querySelector("#email");
+
+    const occasionOk =
+      !occasionInput || !occasionInput.required || Boolean(normalizeValue(occasionInput.value));
+    const emailOk =
+      !emailInput ||
+      !emailInput.required ||
+      (Boolean(normalizeValue(emailInput.value)) && emailInput.checkValidity());
+
+    const modeOk =
+      mode === "calendar"
+        ? Boolean(normalizeValue(selectedDatesInput && selectedDatesInput.value))
+        : Boolean(daysInput && daysInput.checkValidity() && Number(normalizeValue(daysInput.value)) > 0);
+
+    confirmButton.disabled = !(occasionOk && emailOk && modeOk);
+  }
+
+  function setupFoodSponsorshipMode(formEl) {
+    const toggle = formEl.querySelector("#food-sponsor-specific-date");
+    const state = getFoodSponsorshipState(formEl);
+
+    state.toggleInput = toggle;
+    state.calendarPanel = formEl.querySelector("[data-food-mode='calendar']");
+    state.daysPanel = formEl.querySelector("[data-food-mode='days']");
+    state.selectedDatesInput = formEl.querySelector("#food-selected-dates");
+    state.daysInput = formEl.querySelector("#food-sponsorship-days");
+    state.confirmButton = formEl.querySelector("#confirm-button");
+    state.calendarGrid = formEl.querySelector("[data-food-calendar-grid]");
+    state.calendarTitle = formEl.querySelector("[data-food-calendar-title]");
+    state.selectedSummary = formEl.querySelector("[data-food-calendar-summary]");
+
+    if (toggle) {
+      toggle.defaultChecked = true;
+      if (!toggle.checked) {
+        toggle.checked = true;
+      }
+    }
+
+    updateFoodSponsorshipMode(formEl);
+    if (toggle) {
+      toggle.addEventListener("change", () => {
+        updateFoodSponsorshipMode(formEl);
+        if (getFoodSponsorshipVisibleMode(formEl) === "calendar" && state.selectedDatesInput && !normalizeValue(state.selectedDatesInput.value)) {
+          setFoodSponsorshipSelectedDates(formEl, state.selectedDates);
+        }
+        syncFoodSponsorshipConfirmState(formEl);
+      });
+    }
+
+    const daysInput = state.daysInput;
+    if (daysInput) {
+      daysInput.addEventListener("input", () => syncFoodSponsorshipConfirmState(formEl));
+      daysInput.addEventListener("change", () => syncFoodSponsorshipConfirmState(formEl));
+    }
+    const selectedDatesInput = state.selectedDatesInput;
+    if (selectedDatesInput) {
+      selectedDatesInput.dataset.foodSelectedDates = "true";
+    }
+
+    syncFoodSponsorshipConfirmState(formEl);
+    hydrateFoodSponsorshipBlockedDates(formEl).catch(() => {
+      // render with whatever blocked dates we already have
+    });
+  }
+
+  function renderFoodSponsorshipForm(prefill) {
+    if (!formFields) {
+      return;
+    }
+
+    formFields.innerHTML = "";
+    foodSponsorshipStateMap.delete(form);
+
+    const modeSection = document.createElement("div");
+    modeSection.className = "form-section food-sponsorship-mode-section";
+
+    const toggleWrap = document.createElement("label");
+    toggleWrap.className = "food-sponsorship-toggle";
+    toggleWrap.setAttribute("for", "food-sponsor-specific-date");
+    const toggle = document.createElement("input");
+    toggle.type = "checkbox";
+    toggle.id = "food-sponsor-specific-date";
+    toggle.checked = true;
+    toggle.defaultChecked = true;
+    toggleWrap.appendChild(toggle);
+    const toggleText = document.createElement("span");
+    toggleText.textContent = "Sponsor specific date";
+    toggleWrap.appendChild(toggleText);
+    modeSection.appendChild(toggleWrap);
+
+    const calendarPanel = document.createElement("div");
+    calendarPanel.className = "food-sponsorship-mode-panel";
+    calendarPanel.dataset.foodMode = "calendar";
+
+    const calendarLead = document.createElement("p");
+    calendarLead.className = "section-note";
+    calendarLead.textContent = "Google calendar with blocked dates greyed out. Select up to 7 dates.";
+    calendarPanel.appendChild(calendarLead);
+
+    const calendarNav = document.createElement("div");
+    calendarNav.className = "food-calendar-nav";
+    const prevButton = document.createElement("button");
+    prevButton.type = "button";
+    prevButton.className = "food-calendar-nav-button";
+    prevButton.setAttribute("aria-label", "Previous month");
+    prevButton.textContent = "←";
+    const calendarTitle = document.createElement("div");
+    calendarTitle.className = "food-calendar-title";
+    calendarTitle.dataset.foodCalendarTitle = "true";
+    const nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.className = "food-calendar-nav-button";
+    nextButton.setAttribute("aria-label", "Next month");
+    nextButton.textContent = "→";
+    calendarNav.append(prevButton, calendarTitle, nextButton);
+    calendarPanel.appendChild(calendarNav);
+
+    const calendarGrid = document.createElement("div");
+    calendarGrid.className = "food-calendar-root";
+    calendarGrid.dataset.foodCalendarGrid = "true";
+    calendarPanel.appendChild(calendarGrid);
+
+    const selectedSummary = document.createElement("p");
+    selectedSummary.className = "food-calendar-summary";
+    selectedSummary.dataset.foodCalendarSummary = "true";
+    selectedSummary.textContent = "No dates selected yet.";
+    calendarPanel.appendChild(selectedSummary);
+
+    const calendarLoading = document.createElement("div");
+    calendarLoading.className = "food-calendar-loading";
+    calendarLoading.hidden = false;
+    calendarLoading.innerHTML =
+      '<span class="food-calendar-loading-dot" aria-hidden="true"></span><span>Loading blocked dates from Google Calendar…</span>';
+    calendarPanel.appendChild(calendarLoading);
+
+    const calendarError = document.createElement("p");
+    calendarError.className = "food-calendar-error";
+    calendarError.hidden = true;
+    calendarPanel.appendChild(calendarError);
+
+    const selectedDatesInput = document.createElement("input");
+    selectedDatesInput.type = "text";
+    selectedDatesInput.id = "food-selected-dates";
+    selectedDatesInput.name = "selectedDates";
+    selectedDatesInput.dataset.q = "Selected dates";
+    selectedDatesInput.dataset.foodSelectedDates = "true";
+    selectedDatesInput.required = true;
+    selectedDatesInput.readOnly = true;
+    selectedDatesInput.hidden = true;
+    calendarPanel.appendChild(selectedDatesInput);
+
+    modeSection.appendChild(calendarPanel);
+
+    const daysPanel = document.createElement("div");
+    daysPanel.className = "food-sponsorship-mode-panel";
+    daysPanel.dataset.foodMode = "days";
+    daysPanel.hidden = true;
+    const daysTitle = document.createElement("p");
+    daysTitle.className = "section-note";
+    daysTitle.textContent = "Number of days";
+    daysPanel.appendChild(daysTitle);
+    const daysField = buildField(
+      {
+        name: "sponsorshipDays",
+        label: "Number of days",
+        type: "number",
+        required: true,
+        fullWidth: true,
+        min: 1,
+        max: 5,
+        help: "Use this if you are not choosing a specific date."
+      },
+      prefill
+    );
+    daysField.id = "food-sponsorship-days-wrap";
+    const daysInput = daysField.querySelector("input");
+    if (daysInput) {
+      daysInput.id = "food-sponsorship-days";
+      daysInput.dataset.q = "Number of days";
+      daysInput.min = "1";
+      daysInput.max = "5";
+    }
+    daysPanel.appendChild(daysField);
+    modeSection.appendChild(daysPanel);
+
+    formFields.appendChild(modeSection);
+
+    const detailsSection = document.createElement("div");
+    detailsSection.className = "form-section";
+    detailsSection.style.display = "grid";
+    detailsSection.style.gap = "32px";
+
+    const occasionField = buildField(
+      {
+        name: "occasion",
+        label: "What's your occasion?",
+        type: "textarea",
+        required: false,
+        fullWidth: true
+      },
+      prefill
+    );
+    detailsSection.appendChild(occasionField);
+
+    detailsSection.appendChild(
+      buildField(
+        {
+          name: "email",
+          label: "Email",
+          type: "email",
+          required: true,
+          fullWidth: true,
+          help: "To inform you of your sponsorship!"
+        },
+        prefill
+      )
+    );
+
+    formFields.appendChild(detailsSection);
+    setupFoodSponsorshipMode(form);
+
+    const state = getFoodSponsorshipState(form);
+    state.calendarPanel = calendarPanel;
+    state.daysPanel = daysPanel;
+    state.selectedDatesInput = selectedDatesInput;
+    state.daysInput = daysInput;
+    state.calendarGrid = calendarGrid;
+    state.calendarTitle = calendarTitle;
+    state.selectedSummary = selectedSummary;
+    state.calendarLoading = calendarLoading;
+    state.calendarError = calendarError;
+    state.confirmButton = document.getElementById("confirm-button");
+    state.toggleInput = toggle;
+
+    prevButton.addEventListener("click", () => {
+      state.monthOffset = Math.max(0, state.monthOffset - 1);
+      renderFoodSponsorshipCalendar(form);
+    });
+    nextButton.addEventListener("click", () => {
+      state.monthOffset += 1;
+      renderFoodSponsorshipCalendar(form);
+    });
+
+    setFoodSponsorshipSelectedDates(form, []);
+    renderFoodSponsorshipCalendar(form);
+    syncFoodSponsorshipConfirmState(form);
   }
 
   function readFileAsDataUrl(file) {
@@ -506,6 +1192,11 @@
 
     formFields.innerHTML = "";
     const prefill = options && options.petName ? { petInterested: options.petName } : null;
+    if (formType === "foodSponsorship") {
+      renderFoodSponsorshipForm(prefill);
+      clearStatus();
+      return;
+    }
     if (Array.isArray(definition.sections)) {
       definition.sections.forEach((section) => {
         formFields.appendChild(buildSection(section, prefill));
@@ -581,6 +1272,12 @@
         (config.forms && config.forms.successMessage) || "Thanks. Your form was sent successfully.",
         "success"
       );
+      const paymentUrl = resolveFoodSponsorshipPaymentUrl(form);
+      if (activeFormType === "foodSponsorship" && paymentUrl) {
+        window.setTimeout(() => {
+          window.location.href = paymentUrl;
+        }, 350);
+      }
     }, 1200);
   }
 
@@ -615,6 +1312,116 @@
     }
 
     return config.forms && config.forms.webAppUrl;
+  }
+
+  function getFoodSponsorshipSelectionCount(formEl) {
+    if (!formEl) {
+      return 0;
+    }
+
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+    if (mode === "calendar") {
+      const selectedDatesInput = formEl.querySelector("#food-selected-dates");
+      if (selectedDatesInput && normalizeValue(selectedDatesInput.value)) {
+        return normalizeValue(selectedDatesInput.value)
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean).length;
+      }
+      return 0;
+    }
+
+    const selectedDatesInput = formEl.querySelector("#food-selected-dates");
+    const daysInput = formEl.querySelector("#food-sponsorship-days");
+    const daysValue = Number(normalizeValue(daysInput && daysInput.value));
+    if (Number.isFinite(daysValue) && daysValue > 0) {
+      return Math.round(daysValue);
+    }
+
+    return 0;
+  }
+
+  function resolveFoodSponsorshipPaymentUrl(formEl) {
+    const foodSponsorship = getFoodSponsorshipConfig();
+    const emailInput = formEl ? formEl.querySelector("#email") : null;
+    const emailValue = normalizeValue(emailInput && emailInput.value);
+    const testPaymentUrl = String(foodSponsorship.testPaymentUrl || "").trim();
+    if (emailValue.toLowerCase() === "0000@0000.com" && testPaymentUrl) {
+      return testPaymentUrl;
+    }
+    const count = getFoodSponsorshipSelectionCount(formEl);
+    const byCount =
+      (foodSponsorship.paymentUrlsByDays && foodSponsorship.paymentUrlsByDays[count]) ||
+      (foodSponsorship.paymentUrlsBySelectionCount && foodSponsorship.paymentUrlsBySelectionCount[count]) ||
+      "";
+    return String(byCount || foodSponsorship.paymentUrl || "").trim();
+  }
+
+  function getFoodSponsorshipSubmissionMessage(formEl) {
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+    if (mode === "calendar") {
+      const selectedDates = getFoodSponsorshipSelectedDates(formEl);
+      if (selectedDates.length === 1) {
+        return `Application submitted successfully. ${formatCalendarDateLabel(selectedDates[0])} will be blocked on Google Calendar.`;
+      }
+      if (selectedDates.length > 1) {
+        return `Application submitted successfully. ${selectedDates.length} selected dates will be blocked on Google Calendar.`;
+      }
+      return "Application submitted successfully. No calendar dates were selected.";
+    }
+
+    const days = getFoodSponsorshipSelectionCount(formEl);
+    if (days > 0) {
+      return `Application submitted successfully. Your sponsorship request is recorded for ${days} day${days === 1 ? "" : "s"}.`;
+    }
+
+    return "Application submitted successfully.";
+  }
+
+  function getFoodSponsorshipSelectedDates(formEl) {
+    if (!formEl) {
+      return [];
+    }
+    const selectedDatesInput = formEl.querySelector("#food-selected-dates");
+    if (!selectedDatesInput) {
+      return [];
+    }
+    return normalizeValue(selectedDatesInput.value)
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  function queueFoodSponsorshipBlockedDates(formEl) {
+    const blockedDatesUrl = buildFoodSponsorshipEndpoint("foodCalendarSync");
+    if (!blockedDatesUrl) {
+      return;
+    }
+
+    if (getFoodSponsorshipVisibleMode(formEl) !== "calendar") {
+      return;
+    }
+
+    const payload = {
+      action: "foodCalendarSync",
+      formType: "foodSponsorship",
+      selectedDates: getFoodSponsorshipSelectedDates(formEl),
+      selectedDays: getFoodSponsorshipSelectionCount(formEl),
+      occasion: normalizeValue(formEl.querySelector("#occasion") && formEl.querySelector("#occasion").value),
+      email: normalizeValue(formEl.querySelector("#email") && formEl.querySelector("#email").value),
+      sourcePage: "food-sponsorship"
+    };
+
+    fetch(blockedDatesUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=UTF-8"
+      },
+      body: JSON.stringify(payload)
+    }).catch(() => {
+      // Best effort only; the sheet submission should not be blocked by sync failures.
+    });
   }
 
   function collectChoiceGridValue(grid) {
@@ -1060,6 +1867,23 @@
         return false;
       }
       setFieldError(container, "");
+      return true;
+    }
+
+    if (control instanceof HTMLInputElement && control.dataset && control.dataset.foodSelectedDates === "true") {
+      const foodState = getFoodSponsorshipStateFromControl(control);
+      if (control.required && !value) {
+        if (foodState.calendarError) {
+          foodState.calendarError.textContent = "Please select at least one available date.";
+          foodState.calendarError.hidden = false;
+        }
+        setFieldError(container, "");
+        return false;
+      }
+      if (foodState.calendarError) {
+        foodState.calendarError.textContent = "";
+        foodState.calendarError.hidden = true;
+      }
       return true;
     }
 
@@ -1646,6 +2470,8 @@
   async function submitSheetForm(formEl, statusEl) {
     const webAppUrl = getSheetWebAppUrl(formEl);
     const fileInputs = Array.from(formEl.querySelectorAll("input[type='file']"));
+    const foodSponsorshipPaymentUrl =
+      activeFormType === "foodSponsorship" ? resolveFoodSponsorshipPaymentUrl(formEl) : "";
 
     function setStatus(message, type) {
       if (!statusEl) {
@@ -1668,6 +2494,10 @@
     }
 
     const { questionOrder, responses, uploads } = await collectSheetSubmissionData(formEl);
+    const successMessage =
+      activeFormType === "foodSponsorship"
+        ? getFoodSponsorshipSubmissionMessage(formEl)
+        : (config.forms && config.forms.successMessage) || "Thanks. Your form was sent successfully.";
     fileInputs.forEach((control) => {
       const items = getFileUploadItems(control);
       if (control && items.length) {
@@ -1694,6 +2524,10 @@
         body: payload
       });
 
+      if (activeFormType === "foodSponsorship") {
+        queueFoodSponsorshipBlockedDates(formEl);
+      }
+
       formEl.reset();
       fileInputs.forEach((control) => {
         if (control) {
@@ -1702,15 +2536,15 @@
           pendingUploadStateMap.delete(control);
         }
       });
-      setStatus((config.forms && config.forms.successMessage) || "Thanks. Your form was sent successfully.", "success");
-      return { ok: true };
+      setStatus(successMessage, "success");
+      return { ok: true, paymentUrl: foodSponsorshipPaymentUrl, successMessage };
     } catch (error) {
       setStatus("Something went wrong while sending this form. Please try again in a moment.", "error");
       return { ok: false, error: "submit_failed" };
     }
   }
 
-  function showTermsSuccess(dialogEl) {
+  function showTermsSuccess(dialogEl, successMessage) {
     const scrollEl = document.getElementById("terms-scroll");
     const actionsEl = document.getElementById("terms-actions");
     const agreeWrap = dialogEl.querySelector(".terms-agree");
@@ -1718,10 +2552,11 @@
 
     if (scrollEl) {
       scrollEl.innerHTML =
-        "<p><strong>Thank you for your application!</strong> You will shortly recieve a mail from Safescape Foundation Team</p>";
+        `<p><strong>${escapeHtml(successMessage || "Thank you for your application!")}</strong></p>` +
+        "<p>You will shortly recieve a mail from Safescape Foundation Team</p>";
       scrollEl.dataset.showingSuccess = "true";
     }
-    setTermsDialogState("success", "Application submitted successfully.");
+    setTermsDialogState("success", successMessage || "Application submitted successfully.");
     setTermsSubmitLoading(false);
     if (agreeWrap) {
       agreeWrap.style.display = "none";
@@ -1896,6 +2731,9 @@
             }
           }
         }
+        if (sheetForm.dataset.sheetForm === "foodSponsorship") {
+          syncFoodSponsorshipConfirmState(sheetForm);
+        }
         maybeApplyAdoptionTestFill(sheetForm, target);
         maybeApplyFosterTestFill(sheetForm, target);
         maybeApplyVolunteerTestFill(sheetForm, target);
@@ -1911,6 +2749,9 @@
         maybeApplyFosterTestFill(sheetForm, target);
         maybeApplyVolunteerTestFill(sheetForm, target);
         maybeApplySurrenderTestFill(sheetForm, target);
+        if (sheetForm.dataset.sheetForm === "foodSponsorship") {
+          syncFoodSponsorshipConfirmState(sheetForm);
+        }
       });
 
       const confirmButton = sheetForm.querySelector("#confirm-button");
@@ -1986,10 +2827,16 @@
                 return;
               }
 
-              setTermsSubmitLoading(true);
-              const result = await submitSheetForm(sheetForm, statusEl);
-              if (result.ok) {
-                showTermsSuccess(dialogEl);
+          setTermsSubmitLoading(true);
+          const result = await submitSheetForm(sheetForm, statusEl);
+          if (result.ok) {
+            const paymentUrl = String(result.paymentUrl || "").trim();
+            if (activeFormType === "foodSponsorship" && paymentUrl) {
+              setTermsSubmitLoading(false);
+              window.location.href = paymentUrl;
+              return;
+            }
+            showTermsSuccess(dialogEl, result.successMessage);
               } else {
                 setTermsSubmitLoading(false);
                 setTermsDialogState("error", "Something went wrong while sending this form.");

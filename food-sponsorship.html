@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="assets/cursor.svg" sizes="any" />
+    <title>Food Sponsorship | Safescape Foundation</title>
+    <meta
+      name="description"
+      content="Sponsor meals for Safescape's rescue dogs by sharing your details and choosing a supported date later."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260418_28" />
+  </head>
+  <body class="form-page-body" data-default-form="foodSponsorship">
+    <div class="page-shell">
+      <header class="site-header form-page-header">
+        <a class="brand" href="index.html#top" aria-label="Safescape Foundation home">
+          <img class="brand-logo" src="assets/vector-logo.svg" alt="Safescape Foundation" />
+        </a>
+
+        <div class="header-actions">
+          <a class="button button-primary button-donate" href="https://pages.razorpay.com/Safescape_Donation" target="_blank" rel="noreferrer">
+            Make a Donation
+          </a>
+        </div>
+      </header>
+
+      <main class="form-page-layout form-page-main">
+        <section class="form-page-panel form-page-panel-bare section">
+          <div class="form-panel form-panel-bare">
+            <div class="form-panel-header">
+              <h1 class="form-page-title" id="form-title">Food Sponsorship</h1>
+              <p class="form-page-subtitle" id="form-description">
+                Share your details and either pick specific dates or tell us how many days you would like to sponsor.
+              </p>
+            </div>
+
+            <form
+              id="lead-form"
+              class="sheet-form lead-form"
+              data-sheet-form="foodSponsorship"
+              data-sheet-name="Food Sponsorship"
+              novalidate
+            >
+              <input type="hidden" name="formType" id="form-type" value="foodSponsorship" />
+              <input type="hidden" name="submittedAt" id="submitted-at" value="" />
+              <input type="hidden" name="sourcePage" value="food-sponsorship" />
+              <div id="form-fields" class="form-fields"></div>
+              <div class="form-actions-row form-actions-row-stacked">
+                <button class="button button-primary" type="button" id="confirm-button" disabled>Confirm</button>
+                <p class="form-status" role="status" aria-live="polite" data-form-status></p>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+      <div class="terms-dialog-card">
+        <div class="terms-dialog-head">
+          <p class="terms-kicker">Safescape Foundation</p>
+          <h2 id="terms-title">Food Sponsorship Terms &amp; Conditions</h2>
+          <button class="terms-close" type="button" id="terms-close" aria-label="Close dialog">×</button>
+        </div>
+        <div class="terms-scroll" id="terms-scroll" role="document" aria-label="Food sponsorship terms and conditions">
+          <div class="terms-copy">
+            <p>
+              By confirming, you agree that the dates you select are a sponsorship request and will be reserved only
+              after Safescape Foundation reviews availability.
+            </p>
+            <p>
+              Once confirmed, the selected dates will be marked on our calendar, and the sponsorship amount will be
+              routed to the appropriate payment link for the number of days chosen.
+            </p>
+            <p>
+              If a selected date is already blocked or becomes unavailable, Safescape Foundation may contact you to
+              adjust the sponsorship dates before final confirmation.
+            </p>
+            <p>
+              Your sponsorship details will be recorded in the Safescape spreadsheet for tracking and follow-up.
+            </p>
+          </div>
+        </div>
+        <div class="terms-state" id="terms-state">
+          <label class="terms-agree" id="terms-agree-wrap">
+            <input type="checkbox" id="terms-agree" />
+            <span>I agree with all above points</span>
+          </label>
+        </div>
+        <div class="terms-actions" id="terms-actions">
+          <button class="button button-primary" type="button" id="terms-submit" disabled>
+            <span class="terms-submit-text">Submit</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/site-config.js?v=20260418_28"></script>
+    <script src="js/site-data.js?v=20260418_10"></script>
+    <script src="js/main.js?v=20260418_28"></script>
+  </body>
+</html>

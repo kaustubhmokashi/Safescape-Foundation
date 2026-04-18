@@ -12,6 +12,10 @@ const FORM_DESTINATIONS = {
     sheetId: 1012606437,
     sheetName: "Foster"
   },
+  foodSponsorship: {
+    spreadsheetId: "1Nt1wt_iYjuIBEgTsw_yOkC-nCTTYZXPxSsc_yNdJnCw",
+    sheetName: "Food Sponsorship"
+  },
   surrender: {
     spreadsheetId: "1negRmgGk09WvyTLnZZAyXpBJOLfbny8J5zblGnIaY5k",
     sheetName: "Surrender"
@@ -19,6 +23,7 @@ const FORM_DESTINATIONS = {
 };
 
 const DEFAULT_NOTIFICATION_RECIPIENT = "contact@safescapefoundation.com";
+const FOOD_SAFESCAPE_CALENDAR_ID = "d66e0b3e3cf10931b4693cec161cfb49a48066ace2352e76cd470e127ce7fe9a@group.calendar.google.com";
 const DEFAULT_FOSTER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 const DEFAULT_FOSTER_UPLOAD_FOLDER_ID = "17i73Sf8FOGjLh9sZO349--_hZJaBF0_m";
 const DEFAULT_SURRENDER_UPLOAD_FOLDER_ID = "1boee-dqJGLPeeXkwfdJNAZkGasImvNM0";
@@ -33,8 +38,46 @@ const SURRENDER_UPLOAD_FOLDER_PROPERTY_KEYS = [
   "UPLOAD_FOLDER_ID_SURRENDER"
 ];
 
+function doGet(e) {
+  const payload = parsePayloadFromEvent_(e);
+  const action = String((payload && payload.action) || (e && e.parameter && e.parameter.action) || "").trim();
+
+  if (action === "foodCalendarDates") {
+    try {
+      return outputJson({
+        ok: true,
+        blockedDates: getFoodCalendarBlockedDates_()
+      });
+    } catch (error) {
+      return outputJson({
+        ok: false,
+        error: String(error && error.message ? error.message : error),
+        blockedDates: []
+      });
+    }
+  }
+
+  return outputJson({ ok: true, status: "ready" });
+}
+
 function doPost(e) {
   const payload = parsePayload(e);
+  const action = String((payload && payload.action) || "").trim();
+
+  if (action === "foodCalendarSync") {
+    try {
+      return outputJson({
+        ok: true,
+        synced: syncFoodCalendarBlockedDates_(payload)
+      });
+    } catch (error) {
+      return outputJson({
+        ok: false,
+        error: String(error && error.message ? error.message : error)
+      });
+    }
+  }
+
   const formType = String((payload && payload.formType) || "").trim();
   const destination = FORM_DESTINATIONS[formType];
 
@@ -139,6 +182,151 @@ function parsePayload(e) {
     }
   }
   return payload;
+}
+
+function parsePayloadFromEvent_(e) {
+  return parsePayload(e);
+}
+
+function getFoodCalendarId_() {
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var propertyKeys = [
+    "FOOD_SAFESCAPE_CALENDAR_ID",
+    "FOOD_SPONSOR_CALENDAR_ID",
+    "FOOD_CALENDAR_ID"
+  ];
+  var index;
+  var calendarId = "";
+
+  for (index = 0; index < propertyKeys.length; index += 1) {
+    calendarId = String(scriptProperties.getProperty(propertyKeys[index]) || "").trim();
+    if (calendarId) {
+      return calendarId;
+    }
+  }
+
+  return FOOD_SAFESCAPE_CALENDAR_ID;
+}
+
+function getFoodCalendarBlockedDates_() {
+  var calendar = getFoodCalendar_();
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var end = new Date(today);
+  end.setMonth(end.getMonth() + 18);
+  var events = calendar.getEvents(today, end);
+  var blockedDates = {};
+
+  events.forEach(function(event) {
+    collectBlockedDatesFromEvent_(event, blockedDates);
+  });
+
+  return Object.keys(blockedDates).sort();
+}
+
+function getFoodCalendar_() {
+  var calendarId = getFoodCalendarId_();
+  var calendar = CalendarApp.getCalendarById(calendarId);
+
+  if (!calendar) {
+    throw new Error("Food sponsorship calendar not found: " + calendarId);
+  }
+
+  return calendar;
+}
+
+function collectBlockedDatesFromEvent_(event, blockedDates) {
+  var start = event.getStartTime();
+  var end = event.getEndTime();
+  var current = new Date(start);
+  var last = new Date(end.getTime() - 1);
+  current.setHours(0, 0, 0, 0);
+  last.setHours(0, 0, 0, 0);
+
+  while (current.getTime() <= last.getTime()) {
+    blockedDates[formatDateKey_(current)] = true;
+    current.setDate(current.getDate() + 1);
+  }
+}
+
+function syncFoodCalendarBlockedDates_(payload) {
+  var calendar = getFoodCalendar_();
+  var selectedDates = normalizeFoodCalendarDates_(payload && payload.selectedDates);
+  var selectedDays = Number(payload && payload.selectedDays ? payload.selectedDays : 0);
+  var sourcePage = String((payload && payload.sourcePage) || "").trim();
+  var occasion = String((payload && payload.occasion) || "").trim();
+  var email = String((payload && payload.email) || "").trim();
+  var created = [];
+  var title = occasion ? (occasion + " | Food Sponsorship | Safescape Foundation") : "Food Sponsorship | Safescape Foundation";
+  var description = [
+    "Source: " + (sourcePage || "food-sponsorship"),
+    "Occasion: " + (occasion || "(not provided)"),
+    "Email: " + (email || "(not provided)"),
+    "Selected days: " + (selectedDays || selectedDates.length || 0),
+    "Created on: " + new Date().toISOString()
+  ].join("\n");
+
+  if (!selectedDates.length) {
+    return created;
+  }
+
+  selectedDates.forEach(function(dateKey) {
+    var date = parseDateKey_(dateKey);
+    if (!date) {
+      return;
+    }
+    var event = calendar.createAllDayEvent(title, date, {
+      description: description
+    });
+    if (event && email) {
+      event.addGuest(email);
+    }
+    created.push(dateKey);
+  });
+
+  return created;
+}
+
+function normalizeFoodCalendarDates_(dates) {
+  var list = Array.isArray(dates) ? dates : [];
+  var seen = {};
+  var result = [];
+
+  list.forEach(function(value) {
+    var dateKey = formatDateKey_(value);
+    if (dateKey && !seen[dateKey]) {
+      seen[dateKey] = true;
+      result.push(dateKey);
+    }
+  });
+
+  return result;
+}
+
+function parseDateKey_(value) {
+  var dateKey = formatDateKey_(value);
+  if (!dateKey) {
+    return null;
+  }
+  var parts = dateKey.split("-");
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+}
+
+function formatDateKey_(value) {
+  if (!value) {
+    return "";
+  }
+
+  var date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
 }
 
 function processUploadsForSubmission_(formType, spreadsheetId, responses, uploads) {
