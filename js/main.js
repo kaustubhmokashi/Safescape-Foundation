@@ -1392,7 +1392,7 @@
       .filter(Boolean);
   }
 
-  function queueFoodSponsorshipBlockedDates(formEl) {
+  async function queueFoodSponsorshipBlockedDates(formEl) {
     const blockedDatesUrl = buildFoodSponsorshipEndpoint("foodCalendarSync");
     if (!blockedDatesUrl) {
       return;
@@ -1412,7 +1412,7 @@
       sourcePage: "food-sponsorship"
     };
 
-    fetch(blockedDatesUrl, {
+    await fetch(blockedDatesUrl, {
       method: "POST",
       mode: "no-cors",
       headers: {
@@ -1422,6 +1422,8 @@
     }).catch(() => {
       // Best effort only; the sheet submission should not be blocked by sync failures.
     });
+
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
   }
 
   function collectChoiceGridValue(grid) {
@@ -2525,7 +2527,7 @@
       });
 
       if (activeFormType === "foodSponsorship") {
-        queueFoodSponsorshipBlockedDates(formEl);
+        await queueFoodSponsorshipBlockedDates(formEl);
       }
 
       formEl.reset();
@@ -2820,18 +2822,23 @@
             syncTermsSubmitButtonState();
             newSubmitButton.addEventListener("click", async () => {
               setDialogError("");
-              if (!agreeInput.checked) {
-                setTermsDialogState(null, "");
-                setDialogError("Please confirm that you agree with the terms before submitting.");
-                syncTermsSubmitButtonState();
-                return;
-              }
+          if (!agreeInput.checked) {
+            setTermsDialogState(null, "");
+            setDialogError("Please confirm that you agree with the terms before submitting.");
+            syncTermsSubmitButtonState();
+            return;
+          }
 
           setTermsSubmitLoading(true);
+          if (activeFormType === "foodSponsorship") {
+            setTermsDialogState("loading", "Adding to calendar");
+          }
           const result = await submitSheetForm(sheetForm, statusEl);
           if (result.ok) {
             const paymentUrl = String(result.paymentUrl || "").trim();
             if (activeFormType === "foodSponsorship" && paymentUrl) {
+              setTermsDialogState("loading", "Redirecting to Payment");
+              await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
               setTermsSubmitLoading(false);
               window.location.href = paymentUrl;
               return;
