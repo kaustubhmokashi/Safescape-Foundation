@@ -1021,7 +1021,7 @@
           type: "email",
           required: true,
           fullWidth: true,
-          help: "To inform you of your sponsorship!"
+          help: "A google event would be sent on this email address"
         },
         prefill
       )
