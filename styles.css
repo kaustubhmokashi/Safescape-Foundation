@@ -1444,8 +1444,8 @@ body.js-ready .reveal-section.is-visible {
 }
 
 .passive-story-share img {
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   display: block;
   filter: brightness(0) saturate(100%) invert(19%) sepia(29%) saturate(1384%) hue-rotate(42deg) brightness(88%) contrast(93%);
 }
@@ -1491,7 +1491,7 @@ body.js-ready .reveal-section.is-visible {
   gap: 0.65rem;
   overflow-x: auto;
   overflow-y: visible;
-  padding: 0.35rem 0.15rem 0.55rem;
+  padding: 0.35rem 0.15rem 0.95rem;
   scrollbar-width: thin;
   scroll-snap-type: x proximity;
 }
@@ -3792,6 +3792,7 @@ a.footer-donate-button:hover {
 
   .passive-story-carousel-thumbs {
     gap: 0.45rem;
+    padding-bottom: 0.9rem;
   }
 
   .passive-story-carousel-thumb {
