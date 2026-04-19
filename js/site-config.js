@@ -25,6 +25,15 @@ window.SAFESCAPE_CONFIG = {
     },
     paymentUrlsBySelectionCount: {}
   },
+  monthlyDonation: {
+    paymentUrl: "https://pages.razorpay.com/Safescape_Donation",
+    paymentUrlsByAmount: {
+      1000: "https://rzp.io/rzp/sULoerFK",
+      3000: "https://rzp.io/rzp/EcTWHWX",
+      5000: "https://rzp.io/rzp/CFVyyxP",
+      10000: "https://rzp.io/rzp/prrUPx8d"
+    }
+  },
   instagram: {
     mode: "json",
     profileUrl: "https://www.instagram.com/safescapefoundation/",

@@ -900,7 +900,122 @@ body.js-ready .reveal-section.is-visible {
   border-radius: 2rem;
   background:
     linear-gradient(180deg, rgba(62, 89, 16, 0.06), rgba(62, 89, 16, 0)),
-    radial-gradient(circle at top left, rgba(62, 89, 16, 0.08), transparent 28%);
+  radial-gradient(circle at top left, rgba(62, 89, 16, 0.08), transparent 28%);
+}
+
+.volunteer-callout {
+  margin-top: 1rem;
+  padding: 0 2.2rem;
+}
+
+.volunteer-callout-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  width: 100%;
+  padding: 1.5rem 1.75rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(62, 89, 16, 0.1);
+  box-shadow: 0 16px 34px rgba(62, 89, 16, 0.08);
+}
+
+.volunteer-callout-copy {
+  min-width: 0;
+}
+
+.volunteer-callout-copy .help-tag {
+  margin-top: 0;
+}
+
+.volunteer-callout-copy h3 {
+  margin: 0.45rem 0 0.7rem;
+  font-size: 1.28rem;
+}
+
+.volunteer-callout-copy p:last-of-type {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.volunteer-callout-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.monthly-donation-form {
+  margin-top: 1.2rem;
+}
+
+.monthly-donation-field {
+  gap: 0.85rem;
+}
+
+.monthly-donation-label {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.monthly-donation-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.monthly-donation-pill {
+  appearance: none;
+  border: 1px solid rgba(62, 89, 16, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--brand-deep);
+  padding: 1rem 1.1rem;
+  font: inherit;
+  font-weight: 800;
+  text-align: center;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.monthly-donation-pill:hover {
+  transform: translateY(-1px);
+}
+
+.monthly-donation-pill.is-selected {
+  background: linear-gradient(135deg, var(--brand), #6d8a22);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 12px 28px rgba(62, 89, 16, 0.22);
+}
+
+.monthly-donation-actions {
+  margin-top: 1.4rem;
+}
+
+.monthly-donation-actions .button {
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .volunteer-callout-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .volunteer-callout-actions {
+    justify-content: flex-start;
+  }
+
+  .monthly-donation-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .involved-grid {

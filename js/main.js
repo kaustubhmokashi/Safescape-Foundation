@@ -3696,6 +3696,69 @@
     });
   }
 
+  function resolveMonthlyDonationPaymentUrl(amount) {
+    const monthlyDonation = (window.SAFESCAPE_CONFIG && window.SAFESCAPE_CONFIG.monthlyDonation) || {};
+    const byAmount = monthlyDonation.paymentUrlsByAmount || {};
+    return (
+      String(byAmount[amount] || "").trim() ||
+      String(monthlyDonation.paymentUrl || "").trim() ||
+      ""
+    );
+  }
+
+  function setupMonthlyDonationPage() {
+    const monthlyForm = document.querySelector("[data-monthly-donation-page]");
+    if (!monthlyForm) {
+      return;
+    }
+
+    const pillButtons = Array.from(monthlyForm.querySelectorAll("[data-monthly-amount]"));
+    const payButton = monthlyForm.querySelector("#monthly-donation-pay");
+    const status = monthlyForm.querySelector("[data-monthly-donation-status]");
+    let selectedAmount = "";
+
+    const syncState = () => {
+      const hasSelection = Boolean(selectedAmount);
+      if (payButton) {
+        payButton.disabled = !hasSelection;
+      }
+      pillButtons.forEach((pill) => {
+        const isActive = pill.dataset.monthlyAmount === selectedAmount;
+        pill.classList.toggle("is-selected", isActive);
+        pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+      if (status) {
+        status.textContent = hasSelection
+          ? `Selected amount: ₹${Number(selectedAmount).toLocaleString("en-IN")}`
+          : "Choose an amount to continue.";
+        status.classList.remove("is-error", "is-success");
+      }
+    };
+
+    pillButtons.forEach((pill) => {
+      pill.addEventListener("click", () => {
+        selectedAmount = String(pill.dataset.monthlyAmount || "");
+        syncState();
+      });
+    });
+
+    if (payButton) {
+      payButton.addEventListener("click", () => {
+        const paymentUrl = resolveMonthlyDonationPaymentUrl(selectedAmount);
+        if (!paymentUrl) {
+          if (status) {
+            status.textContent = "We could not find a payment link for the selected amount.";
+            status.classList.add("is-error");
+          }
+          return;
+        }
+        window.location.href = paymentUrl;
+      });
+    }
+
+    syncState();
+  }
+
   renderPetCards();
   if (form && formFields) {
     activateForm(defaultFormType);
@@ -3709,5 +3772,6 @@
   bindFootprintsLifecycle();
   setupWalkingFootprints();
   setupGoogleFormScaleToFit();
+  setupMonthlyDonationPage();
   renderInstagramFeed();
 })();
