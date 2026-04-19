@@ -5,6 +5,14 @@ window.SAFESCAPE_CONFIG = {
     missingConfigMessage:
       "This form is being connected on the new site. If you need immediate help, please contact Safescape directly by phone or email."
   },
+  passiveAdoption: {
+    dataUrl: "https://script.google.com/macros/s/AKfycbyHhy1jEEMoKlzbgvmtkHSaWZWgfK7o9CX3EXvD2CynAUFpDjOn3rktUkj-RN8qkyBdWQ/exec",
+    cacheKey: "safescape.passiveAdoption.stories.v19",
+    loadingMessage: "We’re loading passive adoption stories from the sheet…",
+    refreshingMessage: "Refreshing passive adoption stories…",
+    emptyMessage: "No passive adoption stories have been added yet.",
+    errorMessage: "We couldn’t load passive adoption stories right now. Please refresh in a moment."
+  },
   foodSponsorship: {
     calendarId: "d66e0b3e3cf10931b4693cec161cfb49a48066ace2352e76cd470e127ce7fe9a@group.calendar.google.com",
     blockedDatesUrl: "https://script.google.com/macros/s/AKfycby4GeBE20UNjrquVn2NlhrKtN3cNUIliUPU8LO4XYp0RTV_BSvLFR4w8rD_9B5IH87O9A/exec",

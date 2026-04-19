@@ -8,7 +8,6 @@ A static HTML/CSS/JS rebuild of the current `safescapefoundation.com` experience
 - Safescape home page content based on the live site
 - Dedicated landing pages for adoption, volunteer, foster, and surrender applications
 - Google Sheets integration via Google Apps Script
-- Instagram post sync for a target professional account using Business Discovery
 - Privacy, terms, and disclaimer pages
 
 ## Project structure
@@ -18,11 +17,9 @@ A static HTML/CSS/JS rebuild of the current `safescapefoundation.com` experience
 - `styles.css`: shared styling for the whole site and the policy pages
 - `js/site-config.js`: integration settings you will edit
 - `js/site-data.js`: adoptable pet data and form schema definitions
-- `js/main.js`: rendering, form switching, and Instagram logic
+- `js/main.js`: rendering, form switching, and Instagram display logic
 - `Privacy-Policy.html`, `Terms-and-Conditions.html`, `Disclaimers.html`: policy pages
 - `google-apps-script/Code.gs`: Google Apps Script example for writing form data to Sheets
-- `scripts/fetch-instagram.mjs`: server-side Instagram Business Discovery sync script for posts
-- `.github/workflows/instagram-sync.yml`: hourly GitHub Action that refreshes the Instagram post JSON
 
 ## GitHub Pages deployment
 
@@ -68,43 +65,8 @@ After that, the live website form pages will submit directly into the configured
 
 ## Instagram feed setup
 
-This repo now uses a GitHub Pages-safe Business Discovery pattern:
-
-- fetch Instagram data server-side in GitHub Actions
-- store the result in a static JSON file inside the repo
-- render posts from that JSON file in the frontend
-
-This keeps the site static while keeping Instagram access tokens out of browser code.
-
-### What gets synced
-
-- `data/instagram-posts.json`: latest posts in sequence, newest first
-
-### How this flow works
-
-- `IG_AUTH_USER_ID`: the Instagram professional account ID that belongs to the account you authenticate with
-- `IG_ACCESS_TOKEN`: the server-side token tied to that authenticated account
-- `TARGET_IG_USERNAME`: the professional Instagram username you actually want to display on the website
-
-The sync script uses Meta's Business Discovery flow to fetch media from the target professional account by username.
-
-### Step 1: Add GitHub secrets
-
-In your GitHub repository, open `Settings` → `Secrets and variables` → `Actions` and add:
-
-- `IG_AUTH_USER_ID`
-- `IG_ACCESS_TOKEN`
-- `TARGET_IG_USERNAME`
-
-`IG_ACCESS_TOKEN` should be a server-side token suitable for the Instagram Graph API flow you are using. Do not place it in frontend JavaScript.
-
-### Step 2: Enable the workflow
-
-The workflow file is already included at `.github/workflows/instagram-sync.yml`.
-
-It runs every hour and can also be triggered manually via `workflow_dispatch`.
-
-### Step 3: Keep frontend JSON mode enabled
+The site can render Instagram posts from a static JSON file in `data/instagram-posts.json`.
+If you want to refresh Instagram content later, update that JSON file directly and redeploy the site.
 
 `js/site-config.js` is already set up to read from:
 
@@ -115,30 +77,6 @@ instagram: {
   postsUrl: "./data/instagram-posts.json"
 }
 ```
-
-### JSON shape used by the frontend
-
-```json
-{
-  "data": [
-    {
-      "id": "123",
-      "caption": "Post caption",
-      "permalink": "https://www.instagram.com/p/.../",
-      "media_url": "https://...",
-      "media_type": "IMAGE",
-      "timestamp": "2026-04-15T00:00:00+0000"
-    }
-  ]
-}
-```
-
-### Notes
-
-- This implementation is intentionally posts-only.
-- Stories are not included because Meta does not expose another account's stories through this Business Discovery flow.
-- Highlights are intentionally not included.
-- If you prefer a third-party widget later, `widget` mode is still available in `js/site-config.js`.
 
 ## Updating content
 

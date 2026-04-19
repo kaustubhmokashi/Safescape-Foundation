@@ -91,6 +91,7 @@ window.SAFESCAPE_SITE_DATA = {
         "Maya has been waiting far too long for a home. She is a sweet, speedy, playful girl who does beautifully with humans and other dogs. Safescape describes her as a little patakha who will absolutely make you play. She would do especially well in a family with a playful companion and space to run around. Farm and estate adoptions are welcome if the family lives on site."
     }
   ],
+  passiveAdoptionStories: [],
   forms: {
     adoption: {
       title: "Apply for Adoption",
@@ -123,6 +124,43 @@ window.SAFESCAPE_SITE_DATA = {
           type: "textarea",
           required: true,
           fullWidth: true
+        }
+      ]
+    },
+    passiveAdoption: {
+      title: "Passively adopt a dog",
+      description: "Tell us the kind of companion and home you're open to, and we'll guide the right match with care.",
+      submitLabel: "Confirm",
+      sections: [
+        {
+          title: "Tell us about you",
+          note: "These details help us understand the kind of home you can offer.",
+          fields: [
+            { name: "fullName", label: "Full name", type: "text", required: true, fullWidth: true },
+            { name: "email", label: "Email address", type: "email", required: true, fullWidth: true },
+            { name: "phone", label: "Phone number", type: "tel", required: true, fullWidth: true },
+            { name: "address", label: "Address", type: "textarea", required: true, fullWidth: true }
+          ]
+        },
+        {
+          title: "What you're open to",
+          note: "Tell us the kind of dog and companionship you’re hoping for.",
+          fields: [
+            {
+              name: "dogType",
+              label: "What kind of dog or companion are you open to?",
+              type: "textarea",
+              required: true,
+              fullWidth: true
+            },
+            {
+              name: "homeNotes",
+              label: "Home or lifestyle notes",
+              type: "textarea",
+              required: false,
+              fullWidth: true
+            }
+          ]
         }
       ]
     },

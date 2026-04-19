@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="assets/cursor.svg" sizes="any" />
+    <title>Passively adopt a dog | Safescape Foundation</title>
+    <meta name="description" content="Tell Safescape the kind of companion and home you are open to, and we will guide a thoughtful match." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=20260420_16" />
+  </head>
+  <body class="form-page-body passive-adoption-form-page" data-default-form="passiveAdoption">
+    <div class="page-shell">
+      <header class="site-header form-page-header">
+        <a class="brand" href="index.html#top" aria-label="Safescape Foundation home">
+          <img class="brand-logo" src="assets/vector-logo.svg" alt="Safescape Foundation" />
+        </a>
+
+        <div class="header-actions">
+          <a class="button button-primary button-donate" href="https://pages.razorpay.com/Safescape_Donation" target="_blank" rel="noreferrer">
+            Make a Donation
+          </a>
+        </div>
+      </header>
+
+      <main class="form-page-layout form-page-main">
+        <section class="form-page-panel form-page-panel-bare section">
+          <div class="form-panel form-panel-bare">
+            <div class="form-panel-header">
+              <h1 class="form-page-title" id="form-title">Passively adopt a dog</h1>
+              <p class="form-page-subtitle" id="form-description">
+                Tell us the kind of companion and home you are open to, and we will guide the right match with care.
+              </p>
+            </div>
+
+            <form id="lead-form" class="sheet-form lead-form" data-sheet-form="passiveAdoption" data-sheet-name="Passive Adoption" novalidate>
+              <input type="hidden" name="formType" id="form-type" value="passiveAdoption" />
+              <input type="hidden" name="submittedAt" id="submitted-at" value="" />
+              <input type="hidden" name="sourcePage" value="passive-adoption-form" />
+              <div id="form-fields" class="form-fields"></div>
+              <div class="form-actions-row form-actions-row-stacked">
+                <button class="button button-primary" type="button" id="confirm-button">Confirm</button>
+                <p class="form-status" role="status" aria-live="polite" data-form-status></p>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+      <div class="terms-dialog-card">
+        <div class="terms-dialog-head">
+          <p class="terms-kicker">Safescape Foundation</p>
+          <h2 class="terms-title" id="terms-title">Passive Adoption Terms</h2>
+        </div>
+        <div class="terms-scroll" id="terms-scroll" role="document" aria-label="Passive Adoption Terms">
+          <div class="terms-content">
+            <p>
+              Thanks for taking a gentle step toward passive adoption. This form helps us understand the kind of home
+              and companionship you are open to, so we can guide a thoughtful match.
+            </p>
+            <p><strong>How this works:</strong></p>
+            <p>We review every response with care and may contact you if we see a match that feels right.</p>
+            <p>Submission does not guarantee immediate placement or availability of a specific dog.</p>
+            <p>We may reach out to learn a little more about your routine, space, and preferences.</p>
+            <p><strong>What we ask of you:</strong></p>
+            <p>Please share accurate details so we can keep the matching process honest and helpful.</p>
+            <p>By submitting, you agree to stay in touch if our team reaches out with a possible match.</p>
+            <p>Thank you for supporting our dogs with patience, care, and intention.</p>
+          </div>
+        </div>
+        <div class="terms-state" id="terms-state">
+          <label class="terms-agree" id="terms-agree-wrap">
+            <input type="checkbox" id="terms-agree" />
+            <span>I agree with all above points</span>
+          </label>
+        </div>
+        <div class="terms-actions" id="terms-actions">
+          <button class="button button-primary" type="button" id="terms-submit">
+            <span class="terms-submit-text">Submit</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/site-config.js?v=20260420_16"></script>
+    <script src="js/site-data.js?v=20260420_16"></script>
+    <script src="js/main.js?v=20260420_16"></script>
+  </body>
+</html>

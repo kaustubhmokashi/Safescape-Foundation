@@ -2120,6 +2120,27 @@
     syncAllOtherFields(formEl);
   }
 
+  function fillPassiveAdoptionTestData(formEl) {
+    if (!formEl || formEl.dataset.sheetForm !== "passiveAdoption") {
+      return;
+    }
+
+    setNativeFieldValue(formEl.querySelector("#fullName"), "Test Passive Adopter");
+    setNativeFieldValue(formEl.querySelector("#email"), "test.passive@safescape.local");
+    setNativeFieldValue(formEl.querySelector("#phone"), "9988002758");
+    setNativeFieldValue(formEl.querySelector("#address"), "12, Green Grove, Bengaluru, Karnataka");
+    setNativeFieldValue(
+      formEl.querySelector("#dogType"),
+      "Open to a calm senior dog, preferably medium-sized and comfortable in a quiet home."
+    );
+    setNativeFieldValue(
+      formEl.querySelector("#homeNotes"),
+      "Apartment living with a steady routine and room for gentle walks."
+    );
+
+    syncAllOtherFields(formEl);
+  }
+
   function fillFosterTestData(formEl) {
     if (!formEl || formEl.dataset.sheetForm !== "foster") {
       return;
@@ -2249,6 +2270,17 @@
       target.value.trim() === adoptionTestFillTrigger
     ) {
       fillAdoptionTestData(sheetForm);
+    }
+  }
+
+  function maybeApplyPassiveAdoptionTestFill(sheetForm, target) {
+    if (
+      sheetForm.dataset.sheetForm === "passiveAdoption" &&
+      target instanceof HTMLInputElement &&
+      target.id === "fullName" &&
+      target.value.trim() === adoptionTestFillTrigger
+    ) {
+      fillPassiveAdoptionTestData(sheetForm);
     }
   }
 
@@ -2741,6 +2773,7 @@
           syncFoodSponsorshipConfirmState(sheetForm);
         }
         maybeApplyAdoptionTestFill(sheetForm, target);
+        maybeApplyPassiveAdoptionTestFill(sheetForm, target);
         maybeApplyFosterTestFill(sheetForm, target);
         maybeApplyVolunteerTestFill(sheetForm, target);
         maybeApplySurrenderTestFill(sheetForm, target);
@@ -2752,6 +2785,7 @@
           return;
         }
         maybeApplyAdoptionTestFill(sheetForm, target);
+        maybeApplyPassiveAdoptionTestFill(sheetForm, target);
         maybeApplyFosterTestFill(sheetForm, target);
         maybeApplyVolunteerTestFill(sheetForm, target);
         maybeApplySurrenderTestFill(sheetForm, target);
@@ -3073,7 +3107,11 @@
   }
 
   function setupCursorStamping() {
-    if (document.body.classList.contains("form-page-body") && window.matchMedia("(max-width: 640px)").matches) {
+    const isResponsive = window.matchMedia("(max-width: 860px)").matches;
+    if (
+      isResponsive &&
+      (document.body.classList.contains("form-page-body") || document.body.classList.contains("passive-adoption-page"))
+    ) {
       return;
     }
 
@@ -3706,6 +3744,1034 @@
     );
   }
 
+  const passiveAdoptionRuntime = {
+    stories: [],
+    loading: false,
+    loaded: false,
+    error: ""
+  };
+
+  function getPassiveAdoptionConfig() {
+    return (config && config.passiveAdoption) || {};
+  }
+
+  function getPassiveAdoptionCacheKey() {
+    const passiveConfig = getPassiveAdoptionConfig();
+    return String(passiveConfig.cacheKey || "safescape.passiveAdoption.stories").trim();
+  }
+
+  function getPassiveAdoptionDataUrl() {
+    const passiveConfig = getPassiveAdoptionConfig();
+    const baseUrl = String(passiveConfig.dataUrl || "").trim();
+    if (!baseUrl) {
+      return "";
+    }
+
+    try {
+      const url = new URL(baseUrl, window.location.href);
+      url.searchParams.set("action", "passiveAdoptionStories");
+      return url.toString();
+    } catch (error) {
+      const separator = baseUrl.includes("?") ? "&" : "?";
+      return `${baseUrl}${separator}action=passiveAdoptionStories`;
+    }
+  }
+
+  function readPassiveAdoptionStoriesCache() {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return [];
+    }
+
+    try {
+      const raw = window.localStorage.getItem(getPassiveAdoptionCacheKey());
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? normalizePassiveAdoptionStories(parsed) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writePassiveAdoptionStoriesCache(stories) {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(getPassiveAdoptionCacheKey(), JSON.stringify(Array.isArray(stories) ? stories : []));
+    } catch (error) {
+      // ignore cache write issues
+    }
+  }
+
+  function getPassiveAdoptionStories() {
+    return Array.isArray(passiveAdoptionRuntime.stories) ? passiveAdoptionRuntime.stories : [];
+  }
+
+  function isPassiveAdoptedStory(story) {
+    if (!story) {
+      return false;
+    }
+    if (story.passiveAdopted === true) {
+      return true;
+    }
+    const status = String(story.passiveAdoptionStatus || story.status || "").trim().toLowerCase();
+    return status === "passively adopted" || status === "passive adopted";
+  }
+
+  function isPassiveAdoptionIllStory(story) {
+    if (!story) {
+      return false;
+    }
+    if (story.needsMedicalAttention === true) {
+      return true;
+    }
+    const healthStatus = String(story.healthStatus || story.health || "").trim().toLowerCase();
+    if (!healthStatus) {
+      return false;
+    }
+    if (/^healthy\b/.test(healthStatus)) {
+      return false;
+    }
+    return (
+      healthStatus === "ill" ||
+      healthStatus === "sick" ||
+      healthStatus === "needs extra medical attention" ||
+      healthStatus === "needs medical attention" ||
+      healthStatus.includes("ill") ||
+      healthStatus.includes("sick") ||
+      healthStatus.includes("medical")
+    );
+  }
+
+  function renderPassiveAdoptionBadge() {
+    return `
+      <span class="passive-adoption-badge" aria-label="Passively adopted">
+        Passively adopted
+      </span>
+    `;
+  }
+
+  function renderPassiveAdoptionMedicalBadge() {
+    return `
+      <span class="passive-adoption-medical-badge" aria-label="This dog needs extra medical attention">
+        <span class="passive-adoption-medical-badge-icon" aria-hidden="true">
+          <img src="assets/stethoscope.svg" alt="" loading="lazy" />
+        </span>
+      </span>
+    `;
+  }
+
+  function getPassiveAdoptionPrimaryCtaDetails(story) {
+    if (story && story.passiveAdopted === true) {
+      return {
+        label: "Make a general donation",
+        href: "https://pages.razorpay.com/Safescape_Donation"
+      };
+    }
+    if (story && story.needsMedicalAttention === true) {
+      return {
+        label: "Passively adopt for ₹5000",
+        href: "https://rzp.io/i/WqqZBYgxY"
+      };
+    }
+
+    return {
+      label: "Passively adopt for ₹3000",
+      href: "https://rzp.io/i/JKRilEr"
+    };
+  }
+
+  function getPassiveAdoptionStoryShareData(story) {
+    const url = new URL(window.location.href);
+    const shareUrl = `${url.origin}${url.pathname}?story=${encodeURIComponent(story.slug)}`;
+    const description = Array.isArray(story.storyLines) && story.storyLines.length
+      ? story.storyLines.slice(0, 3).join(" ")
+      : String(story.preview || story.storyText || "").split(/\r?\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 3).join(" ");
+
+    return {
+      title: `${story.name} | Adopt Passively | Safescape Foundation`,
+      text: description,
+      url: shareUrl
+    };
+  }
+
+  function setPassiveAdoptionStoryMeta(story) {
+    if (!story) {
+      return;
+    }
+
+    const description = Array.isArray(story.storyLines) && story.storyLines.length
+      ? story.storyLines.slice(0, 3).join(" ")
+      : String(story.storyText || story.preview || "")
+          .split(/\r?\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(" ");
+    const image = Array.isArray(story.photos) && story.photos.length
+      ? story.photos[0] && story.photos[0].src
+      : story.image || "";
+    const imageAlt = story.imageAlt || `${story.name} at Safescape`;
+    const title = `${story.name} | Adopt Passively | Safescape Foundation`;
+    const canonicalUrl = `${window.location.origin}${window.location.pathname}?story=${encodeURIComponent(story.slug)}`;
+
+    const metaDefinitions = [
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:image", content: image },
+      { property: "og:image:alt", content: imageAlt },
+      { property: "og:url", content: canonicalUrl },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+      { name: "twitter:image", content: image }
+    ];
+
+    metaDefinitions.forEach((definition) => {
+      if (!definition.content) {
+        return;
+      }
+
+      const selector = definition.property
+        ? `meta[property="${definition.property}"]`
+        : `meta[name="${definition.name}"]`;
+      let meta = document.querySelector(selector);
+      if (!meta) {
+        meta = document.createElement("meta");
+        if (definition.property) {
+          meta.setAttribute("property", definition.property);
+        } else {
+          meta.setAttribute("name", definition.name);
+        }
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", definition.content);
+    });
+  }
+
+  function normalizePassiveAdoptionKey(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function splitPassiveAdoptionValues(value) {
+    const raw = extractPassiveAdoptionUrlCandidate(value);
+    return String(raw || value || "")
+      .split(/[\n,|;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function extractPassiveAdoptionUrlCandidate(value) {
+    if (!value || typeof value !== "object") {
+      return "";
+    }
+
+    const candidates = [
+      "getContentUrl",
+      "getSourceUrl",
+      "getUrl"
+    ];
+    for (let index = 0; index < candidates.length; index += 1) {
+      const methodName = candidates[index];
+      if (typeof value[methodName] === "function") {
+        try {
+          const result = value[methodName]();
+          if (result) {
+            return String(result).trim();
+          }
+        } catch (error) {
+          // ignore and continue
+        }
+      }
+    }
+
+    const propertyCandidates = [
+      value.url,
+      value.src,
+      value.href,
+      value.contentUrl,
+      value.sourceUrl
+    ];
+    for (let index = 0; index < propertyCandidates.length; index += 1) {
+      const candidate = propertyCandidates[index];
+      if (candidate) {
+        return String(candidate).trim();
+      }
+    }
+
+    return "";
+  }
+
+  function extractPassiveAdoptionDriveFileId(value) {
+    const text = String(value || "").trim();
+    if (!text) {
+      return "";
+    }
+
+    const patterns = [
+      /(?:https?:\/\/drive\.google\.com\/file\/d\/)([-\w]{10,})/i,
+      /(?:https?:\/\/drive\.google\.com\/open\?id=)([-\w]{10,})/i,
+      /(?:https?:\/\/drive\.google\.com\/uc\?id=)([-\w]{10,})/i,
+      /(?:https?:\/\/drive\.google\.com\/uc\?export=download&id=)([-\w]{10,})/i,
+      /(?:https?:\/\/docs\.google\.com\/uc\?id=)([-\w]{10,})/i,
+      /(?:https?:\/\/lh3\.googleusercontent\.com\/d\/)([-\w]{10,})/i
+    ];
+
+    for (let index = 0; index < patterns.length; index += 1) {
+      const match = text.match(patterns[index]);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    return "";
+  }
+
+  function convertPassiveAdoptionImageUrl(value) {
+    const objectUrl = extractPassiveAdoptionUrlCandidate(value);
+    const raw = normalizeValue(objectUrl || value);
+    if (!raw || raw === "[object Object]") {
+      return "";
+    }
+    if (/^https:\/\/lh3\.googleusercontent\.com\//i.test(raw)) {
+      return raw.includes("=w") || raw.includes("=h") || raw.includes("=d")
+        ? raw
+        : raw.replace(/\/d\/([-\w]{10,})/i, "/d/$1=w1600");
+    }
+    const fileId = extractPassiveAdoptionDriveFileId(raw);
+    if (fileId) {
+      return `https://lh3.googleusercontent.com/d/${fileId}=w1600`;
+    }
+    if (/^\[object Object\]$/i.test(raw)) {
+      return "";
+    }
+    return raw;
+  }
+
+  function splitPassiveAdoptionStoryLines(value) {
+    const text = String(value || "").trim();
+    if (!text) {
+      return [];
+    }
+
+    const lines = text
+      .split(/\r?\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length > 1) {
+      return lines;
+    }
+
+    const sentences = text.match(/[^.!?]+[.!?]?/g) || [text];
+    return sentences.map((line) => line.trim()).filter(Boolean);
+  }
+
+  function lookupPassiveAdoptionValue(record, aliases) {
+    if (!record) {
+      return "";
+    }
+
+    const keys = Array.isArray(aliases) ? aliases : [aliases];
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = normalizePassiveAdoptionKey(keys[index]);
+      if (key && Object.prototype.hasOwnProperty.call(record, key)) {
+        return record[key];
+      }
+    }
+    return "";
+  }
+
+  function normalizePassiveAdoptionPhotos(record, name, fallbackImage) {
+    const photoValues = [];
+    const pushValue = (value) => {
+      splitPassiveAdoptionValues(value).forEach((entry) => {
+        if (entry) {
+          photoValues.push(convertPassiveAdoptionImageUrl(entry));
+        }
+      });
+    };
+
+    pushValue(lookupPassiveAdoptionValue(record, ["photos", "photo urls", "gallery", "gallery photos", "image urls"]));
+
+    Object.keys(record || {}).forEach((key) => {
+      if (/^(photo|image)\d+$/.test(key) || /^gallery\d+$/.test(key)) {
+        pushValue(record[key]);
+      }
+    });
+
+    pushValue(lookupPassiveAdoptionValue(record, ["dog photo", "thumbnail", "cover image", "main photo", "image"]));
+
+    if (fallbackImage) {
+      pushValue(fallbackImage);
+    }
+
+    const unique = [];
+    const seen = new Set();
+    photoValues.forEach((src) => {
+      const clean = convertPassiveAdoptionImageUrl(src);
+      if (!clean || seen.has(clean)) {
+        return;
+      }
+      seen.add(clean);
+      unique.push({
+        src: clean,
+        alt: `${name} at Safescape`
+      });
+    });
+
+    return unique;
+  }
+
+  function normalizePassiveAdoptionPhotoEntry(value, name, fallbackAlt) {
+    if (!value) {
+      return null;
+    }
+
+    const defaultAlt = fallbackAlt || `${name} at Safescape`;
+    if (typeof value === "string") {
+      const src = convertPassiveAdoptionImageUrl(value);
+      return src ? { src, alt: defaultAlt } : null;
+    }
+
+    if (typeof value === "object") {
+      const candidate = normalizeValue(
+        value.src || value.url || value.href || value.contentUrl || value.sourceUrl || value.image || value.photo || value.link
+      );
+      const src = convertPassiveAdoptionImageUrl(candidate);
+      if (!src) {
+        return null;
+      }
+      return {
+        src,
+        alt: normalizeValue(value.alt || value.imageAlt || value.title || defaultAlt) || defaultAlt
+      };
+    }
+
+    return null;
+  }
+
+  function normalizePassiveAdoptionPhotoEntries(entries, name, fallbackImage, fallbackAlt) {
+    const result = [];
+    const seen = new Set();
+    const values = Array.isArray(entries) ? entries : [entries];
+
+    values.forEach((entry) => {
+      const photo = normalizePassiveAdoptionPhotoEntry(entry, name, fallbackAlt);
+      if (!photo || !photo.src || seen.has(photo.src)) {
+        return;
+      }
+      seen.add(photo.src);
+      result.push(photo);
+    });
+
+    if (fallbackImage) {
+      const fallbackPhoto = normalizePassiveAdoptionPhotoEntry(fallbackImage, name, fallbackAlt);
+      if (fallbackPhoto && fallbackPhoto.src && !seen.has(fallbackPhoto.src)) {
+        seen.add(fallbackPhoto.src);
+        result.push(fallbackPhoto);
+      }
+    }
+
+    return result;
+  }
+
+  function normalizePassiveAdoptionStory(record, index) {
+    const hasNormalizedShape =
+      Object.prototype.hasOwnProperty.call(record || {}, "storyText") ||
+      Object.prototype.hasOwnProperty.call(record || {}, "photos") ||
+      Object.prototype.hasOwnProperty.call(record || {}, "image");
+
+    if (hasNormalizedShape) {
+      const name = normalizeValue(record.name) || `Dog ${index + 1}`;
+      const slug = normalizeValue(record.slug) || name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `dog-${index + 1}`;
+      const storyText = normalizeValue(record.storyText || "");
+      const directStoryLines = Array.isArray(record.storyLines) && record.storyLines.length
+        ? record.storyLines.map((line) => normalizeValue(line)).filter(Boolean)
+        : splitPassiveAdoptionStoryLines(storyText);
+      const preview = normalizeValue(record.preview) || directStoryLines.slice(0, 3).join(" ") || storyText;
+      const imageAlt = normalizeValue(record.imageAlt) || `${name} at Safescape`;
+      const photos = normalizePassiveAdoptionPhotoEntries(record.photos || record.photo, name, record.image, imageAlt);
+      const image = convertPassiveAdoptionImageUrl(record.image || (photos[0] && photos[0].src) || "");
+      const passiveAdopted = Boolean(record.passiveAdopted) || isPassiveAdoptedStory(record);
+      const healthStatus = normalizeValue(record.healthStatus || record.health || "");
+      const needsMedicalAttention = Boolean(record.needsMedicalAttention) || isPassiveAdoptionIllStory(record);
+      const storyUrl = normalizeValue(record.storyUrl) || `adopt-passively.html?story=${encodeURIComponent(slug)}`;
+      const formUrl = normalizeValue(record.formUrl) || "passive-adoption-form.html";
+      const donationUrl = normalizeValue(record.donationUrl) || "https://pages.razorpay.com/Safescape_Donation";
+      const orderValue = Number(record.order);
+
+      return {
+        slug,
+        name,
+        passiveAdopted,
+        passiveAdoptionStatus: normalizeValue(record.passiveAdoptionStatus || ""),
+        healthStatus,
+        needsMedicalAttention,
+        image,
+        imageAlt,
+        photos: photos.length ? photos : image ? [{ src: image, alt: imageAlt }] : [],
+        storyText,
+        preview,
+        storyLines: directStoryLines.length ? directStoryLines : preview ? [preview] : [],
+        storyUrl,
+        formUrl,
+        donationUrl,
+        order: Number.isFinite(orderValue) ? orderValue : index + 1,
+        sourceIndex: Number.isFinite(orderValue) ? orderValue : index + 1
+      };
+    }
+
+    const rawName = normalizeValue(lookupPassiveAdoptionValue(record, ["name of the dog", "dog name", "name", "title", "story name"]));
+    const name = rawName || `Dog ${index + 1}`;
+    const slugRaw = normalizeValue(lookupPassiveAdoptionValue(record, ["slug", "dog slug", "story slug", "id"]));
+    const slug = slugRaw
+      ? slugRaw
+      : name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || `dog-${index + 1}`;
+    const storyText = String(
+      lookupPassiveAdoptionValue(record, ["story of the dog", "story", "story text", "description", "bio", "content"]) || ""
+    ).trim();
+    const storyLines = splitPassiveAdoptionStoryLines(storyText);
+    const preview = storyLines.slice(0, 3).join(" ") || storyText;
+    const status = String(
+      lookupPassiveAdoptionValue(record, ["status", "passive adoption status"]) || ""
+    ).trim();
+    const healthStatus = String(
+      lookupPassiveAdoptionValue(record, ["healthy or ill", "health status", "medical status"]) || ""
+    ).trim();
+    const adoptedValue = String(
+      lookupPassiveAdoptionValue(record, ["passively adopted", "passive adopted", "adopted passively", "adopted"])
+    ).trim().toLowerCase();
+    const passiveAdopted =
+      adoptedValue === "true" ||
+      adoptedValue === "yes" ||
+      adoptedValue === "1" ||
+      status.toLowerCase() === "passively adopted" ||
+      status.toLowerCase() === "passive adopted";
+    const needsMedicalAttention = isPassiveAdoptionIllStory({ healthStatus });
+    const imageAlt = normalizeValue(lookupPassiveAdoptionValue(record, ["image alt", "thumbnail alt", "alt text"])) || `${name} at Safescape`;
+    const photos = normalizePassiveAdoptionPhotos(record, name, lookupPassiveAdoptionValue(record, ["dog photo", "image", "thumbnail", "cover image"]));
+    const firstPhoto = photos[0] || {
+      src: convertPassiveAdoptionImageUrl(lookupPassiveAdoptionValue(record, ["dog photo", "image", "thumbnail", "cover image"])) || "",
+      alt: imageAlt
+    };
+    const storyUrl = normalizeValue(lookupPassiveAdoptionValue(record, ["story url", "page url", "story page url", "detail url"])) || `adopt-passively.html?story=${encodeURIComponent(slug)}`;
+    const formUrl = normalizeValue(lookupPassiveAdoptionValue(record, ["form url", "adopt url", "passive adoption form", "passive adoption url"])) || "passive-adoption-form.html";
+    const donationUrl = normalizeValue(lookupPassiveAdoptionValue(record, ["donation url", "donate url", "monthly donation url"])) || "https://pages.razorpay.com/Safescape_Donation";
+    const orderValue = Number(lookupPassiveAdoptionValue(record, ["order", "sort order", "priority"]));
+
+    return {
+      slug,
+      name,
+      passiveAdopted,
+      passiveAdoptionStatus: status,
+      healthStatus,
+      needsMedicalAttention,
+      image: firstPhoto.src || "",
+      imageAlt,
+      photos: photos.length ? photos : firstPhoto.src ? [firstPhoto] : [],
+      preview,
+      storyLines: storyLines.length ? storyLines : preview ? [preview] : [],
+      storyUrl,
+      formUrl,
+      donationUrl,
+      order: Number.isFinite(orderValue) ? orderValue : index + 1,
+      sourceIndex: index + 1
+    };
+  }
+
+  function normalizePassiveAdoptionStories(payload) {
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload && payload.stories)
+        ? payload.stories
+        : Array.isArray(payload && payload.data)
+          ? payload.data
+          : [];
+
+    return list
+      .map((entry, index) => normalizePassiveAdoptionStory(entry || {}, index))
+      .filter((story) => {
+        if (!story || !story.slug || !story.name) {
+          return false;
+        }
+        if (/^Dog\s+\d+$/i.test(story.name)) {
+          return false;
+        }
+        return Boolean(story.image || (Array.isArray(story.photos) && story.photos.length));
+      })
+      .sort((a, b) => {
+        const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : Number(a.sourceIndex || 0);
+        const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : Number(b.sourceIndex || 0);
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return Number(a.sourceIndex || 0) - Number(b.sourceIndex || 0);
+      });
+  }
+
+  function getPassiveAdoptionStoryQuerySlug() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return normalizeValue(params.get("story") || "");
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function getPassiveAdoptionStoryHref(story) {
+    const slug = normalizeValue(story && story.slug ? story.slug : "");
+    if (!slug) {
+      return "adopt-passively.html";
+    }
+    return `adopt-passively.html?story=${encodeURIComponent(slug)}`;
+  }
+
+  function updatePassiveAdoptionListLoader(message, mode) {
+    const loader = document.querySelector("[data-passive-adoption-loading]");
+    const loaderCopy = loader ? loader.querySelector("[data-passive-adoption-loader-copy]") : null;
+    if (!loader) {
+      return;
+    }
+    loader.hidden = false;
+    loader.dataset.state = mode || "loading";
+    if (loaderCopy && message) {
+      loaderCopy.textContent = message;
+    }
+  }
+
+  function hidePassiveAdoptionListLoader() {
+    const loader = document.querySelector("[data-passive-adoption-loading]");
+    if (loader) {
+      loader.hidden = true;
+    }
+  }
+
+  function updatePassiveAdoptionStoryLoader(message, mode) {
+    const loader = document.querySelector("[data-passive-story-loading]");
+    const loaderCopy = loader ? loader.querySelector("[data-passive-story-loader-copy]") : null;
+    if (!loader) {
+      return;
+    }
+    loader.hidden = false;
+    loader.dataset.state = mode || "loading";
+    if (loaderCopy && message) {
+      loaderCopy.textContent = message;
+    }
+  }
+
+  function hidePassiveAdoptionStoryLoader() {
+    const loader = document.querySelector("[data-passive-story-loading]");
+    if (loader) {
+      loader.hidden = true;
+    }
+  }
+
+  function renderPassiveAdoptionListPage() {
+    const listRoot = document.querySelector("[data-passive-adoption-stories]");
+    const storySlug = getPassiveAdoptionStoryQuerySlug();
+    const hero = document.querySelector(".passive-adoption-hero");
+    if (!listRoot) {
+      return;
+    }
+
+    if (hero) {
+      hero.hidden = Boolean(storySlug);
+    }
+
+    const stories = getPassiveAdoptionStories();
+    if (!stories.length) {
+      listRoot.hidden = true;
+      listRoot.innerHTML = "";
+      if (passiveAdoptionRuntime.loaded && passiveAdoptionRuntime.error) {
+        updatePassiveAdoptionListLoader(passiveAdoptionRuntime.error, "error");
+      } else if (passiveAdoptionRuntime.loaded) {
+        updatePassiveAdoptionListLoader(
+          getPassiveAdoptionConfig().emptyMessage || "No passive adoption stories have been added yet.",
+          "empty"
+        );
+      } else {
+        updatePassiveAdoptionListLoader(
+          getPassiveAdoptionConfig().loadingMessage || "We’re loading passive adoption stories from the sheet…",
+          passiveAdoptionRuntime.loading ? "loading" : "idle"
+        );
+      }
+      return;
+    }
+
+    listRoot.hidden = false;
+    listRoot.innerHTML = stories
+      .map((story) => {
+        const photos = Array.isArray(story.photos) && story.photos.length ? story.photos : [];
+        const thumbnail = photos[0] || { src: story.image || "", alt: story.imageAlt || story.name };
+        const preview = Array.isArray(story.storyLines)
+          ? story.storyLines.slice(0, 3).join(" ")
+          : String(story.preview || "");
+        return `
+          <article class="passive-adoption-card" id="${escapeHtml(story.slug)}-card">
+            <button type="button" class="passive-adoption-card-media" data-passive-story-open="${escapeHtml(story.slug)}" aria-label="Read ${escapeHtml(story.name)} story">
+              ${story.needsMedicalAttention ? renderPassiveAdoptionMedicalBadge() : ""}
+              ${isPassiveAdoptedStory(story) ? renderPassiveAdoptionBadge() : ""}
+              <img class="passive-adoption-card-image" src="${escapeHtml(thumbnail.src || "")}" alt="${escapeHtml(thumbnail.alt || story.imageAlt || story.name)}" loading="lazy" />
+            </button>
+            <div class="passive-adoption-card-body">
+              <h2>${escapeHtml(story.name)}</h2>
+              <p class="passive-adoption-card-excerpt">${escapeHtml(preview)}</p>
+              <div class="passive-adoption-card-actions">
+                <button type="button" class="button button-primary" data-passive-story-open="${escapeHtml(story.slug)}">Read story</button>
+              </div>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    listRoot.hidden = Boolean(storySlug);
+
+    listRoot.querySelectorAll("[data-passive-story-open]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const slug = button.getAttribute("data-passive-story-open") || "";
+        if (slug) {
+          window.location.href = getPassiveAdoptionStoryHref({ slug });
+        }
+      });
+    });
+
+    hidePassiveAdoptionListLoader();
+  }
+
+  function renderPassiveAdoptionStoryPage() {
+    const storySlug = getPassiveAdoptionStoryQuerySlug() || normalizeValue(document.body.dataset.passiveStorySlug || "");
+    if (!document.body.classList.contains("passive-adoption-story-page") && !storySlug) {
+      return;
+    }
+    if (!storySlug && !document.body.classList.contains("passive-adoption-story-page")) {
+      return;
+    }
+
+    const storyShell = document.querySelector("[data-passive-story-shell]");
+    const storyLoader = document.querySelector("[data-passive-story-loading]");
+    const breadcrumbs = document.querySelector("[data-passive-story-breadcrumbs]");
+    const story = getPassiveAdoptionStories().find((entry) => entry.slug === storySlug);
+    const hasLoadedStories = passiveAdoptionRuntime.loaded || getPassiveAdoptionStories().length > 0;
+
+    if (!story) {
+      if (!hasLoadedStories && !passiveAdoptionRuntime.error) {
+        if (storyShell) {
+          storyShell.hidden = true;
+        }
+        if (breadcrumbs) {
+          breadcrumbs.hidden = true;
+        }
+        updatePassiveAdoptionStoryLoader(
+          getPassiveAdoptionConfig().loadingMessage || "We’re loading this dog’s story from the sheet…",
+          passiveAdoptionRuntime.loading ? "loading" : "idle"
+        );
+        return;
+      }
+
+      if (storyShell) {
+        storyShell.hidden = false;
+        storyShell.innerHTML = `
+          <div class=\"passive-story-copy passive-story-copy-empty\">
+            <p class=\"eyebrow\">Passive adoption story</p>
+            <h1>Story not available yet.</h1>
+            <div class=\"passive-story-body\">
+              <p>We couldn’t find this dog’s story in the sheet yet. Please return to the listing and choose another story.</p>
+            </div>
+            <div class=\"passive-story-actions\">
+              <a class=\"button button-primary\" href=\"adopt-passively.html\">Back to stories</a>
+            </div>
+          </div>
+        `;
+      }
+      if (breadcrumbs) {
+        breadcrumbs.hidden = false;
+        const current = breadcrumbs.querySelector("[aria-current='page']");
+        if (current) {
+          current.textContent = "Story not available";
+        }
+      }
+      hidePassiveAdoptionStoryLoader();
+      return;
+    }
+
+    const title = document.querySelector(".passive-story-copy h1, [data-passive-story-name]");
+    const storyBody = document.querySelector(".passive-story-body, [data-passive-story-body]");
+    const storyFigure = document.querySelector(".passive-story-figure");
+    const storyShareButton = document.querySelector("[data-passive-story-share]");
+    const adoptCta = document.querySelector("[data-passive-adopt-cta]");
+    const donateCta = document.querySelector("[data-passive-donate-cta]");
+    const medicalNoteClass = story && story.needsMedicalAttention ? "" : " is-hidden";
+    const adoptState = getPassiveAdoptionPrimaryCtaDetails(story);
+    const photos = Array.isArray(story.photos) && story.photos.length
+      ? story.photos.filter((photo) => photo && photo.src)
+      : story.image
+        ? [{ src: story.image, alt: story.imageAlt || `${story.name} at Safescape` }]
+        : [];
+
+    if (storyShell) {
+      storyShell.hidden = false;
+    }
+    if (breadcrumbs) {
+      breadcrumbs.hidden = false;
+      const current = breadcrumbs.querySelector("[aria-current='page']");
+      if (current) {
+        current.textContent = story.name;
+      }
+    }
+    if (title) {
+      title.textContent = story.name;
+    }
+    setPassiveAdoptionStoryMeta(story);
+    if (storyBody) {
+      const lines = Array.isArray(story.storyLines) && story.storyLines.length
+        ? story.storyLines
+        : String(story.storyText || story.preview || "")
+            .split(/\r?\n+/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+      storyBody.innerHTML = lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+    }
+    if (storyFigure) {
+      storyFigure.innerHTML = `
+        <div class="passive-story-carousel" data-passive-story-carousel>
+          ${isPassiveAdoptedStory(story) ? renderPassiveAdoptionBadge() : ""}
+          <div class="passive-story-carousel-stage" data-passive-story-carousel-stage></div>
+          <div class="passive-story-carousel-thumbs" data-passive-story-carousel-thumbs aria-label="Photo thumbnails"></div>
+        </div>
+        <div class="passive-story-medical-note${medicalNoteClass}" data-passive-story-medical-note>
+          <span class="passive-story-medical-note-icon" aria-hidden="true">
+            <img src="assets/stethoscope.svg" alt="" loading="lazy" />
+          </span>
+          <span>This dog needs extra medical attention</span>
+        </div>
+      `;
+
+      const carouselStage = storyFigure.querySelector("[data-passive-story-carousel-stage]");
+      const carouselThumbs = storyFigure.querySelector("[data-passive-story-carousel-thumbs]");
+      let activeIndex = 0;
+
+      const renderCarousel = () => {
+        if (!carouselStage || !carouselThumbs) {
+          return;
+        }
+
+        const slides = photos.length ? photos : [{ src: story.image || "", alt: story.imageAlt || `${story.name} at Safescape` }];
+
+        const activeSlide = slides[Math.max(0, Math.min(activeIndex, slides.length - 1))] || slides[0];
+        carouselStage.innerHTML = activeSlide
+          ? `
+            <figure class="passive-story-slide is-active" data-passive-story-slide="${activeIndex}">
+              <img src="${escapeHtml(activeSlide.src || "")}" alt="${escapeHtml(activeSlide.alt || `${story.name} photo ${activeIndex + 1}`)}" loading="eager" />
+            </figure>
+          `
+          : "";
+
+        carouselThumbs.innerHTML = slides
+          .map(
+            (photo, index) => `
+              <button
+                type="button"
+                class="passive-story-carousel-thumb${index === activeIndex ? " is-active" : ""}"
+                data-passive-carousel-thumb="${index}"
+                aria-label="Show photo ${index + 1} of ${slides.length}"
+                aria-pressed="${index === activeIndex ? "true" : "false"}"
+              >
+                <img src="${escapeHtml(photo.src || "")}" alt="${escapeHtml(photo.alt || `${story.name} photo ${index + 1}`)}" loading="lazy" />
+              </button>
+            `
+          )
+          .join("");
+
+        carouselThumbs.querySelectorAll("[data-passive-carousel-thumb]").forEach((thumb) => {
+          thumb.addEventListener("click", () => {
+            const targetIndex = Number(thumb.getAttribute("data-passive-carousel-thumb") || 0);
+            if (!Number.isFinite(targetIndex)) {
+              return;
+            }
+            activeIndex = Math.max(0, Math.min(targetIndex, slides.length - 1));
+            renderCarousel();
+            if (typeof thumb.scrollIntoView === "function") {
+              thumb.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+            }
+          });
+        });
+      };
+
+      renderCarousel();
+    }
+    if (donateCta) {
+      donateCta.hidden = Boolean(story.passiveAdopted);
+    }
+    if (adoptCta) {
+      adoptCta.textContent = adoptState.label;
+      adoptCta.href = adoptState.href;
+      adoptCta.classList.toggle("button-primary", !story.passiveAdopted);
+      adoptCta.classList.toggle("button-secondary", Boolean(story.passiveAdopted));
+      adoptCta.hidden = false;
+    }
+    if (storyShareButton) {
+      storyShareButton.hidden = false;
+      storyShareButton.onclick = async () => {
+        const shareData = getPassiveAdoptionStoryShareData(story);
+        const isResponsiveView = window.matchMedia && window.matchMedia("(max-width: 860px)").matches;
+        const canNativeShare = isResponsiveView && typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+        if (canNativeShare) {
+          try {
+            await navigator.share(shareData);
+            return;
+          } catch (error) {
+            // fall back to copy
+          }
+        }
+
+        try {
+          await navigator.clipboard.writeText(shareData.url);
+          storyShareButton.classList.add("is-copied");
+          window.clearTimeout(storyShareButton.__copyResetTimer);
+          storyShareButton.__copyResetTimer = window.setTimeout(() => {
+            storyShareButton.classList.remove("is-copied");
+          }, 1800);
+        } catch (error) {
+          window.prompt("Copy this story link:", shareData.url);
+        }
+      };
+    }
+    hidePassiveAdoptionStoryLoader();
+    document.title = `${story.name} | Adopt Passively | Safescape Foundation`;
+  }
+
+  async function loadPassiveAdoptionStoriesJsonp(url) {
+    return new Promise((resolve, reject) => {
+      if (!url) {
+        reject(new Error("Passive adoption feed is not configured yet."));
+        return;
+      }
+
+      const callbackName = `safescapePassiveAdoptionStories_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const script = document.createElement("script");
+      const separator = url.includes("?") ? "&" : "?";
+      let settled = false;
+      let timeoutId = null;
+
+      const cleanup = () => {
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        try {
+          delete window[callbackName];
+        } catch (error) {
+          window[callbackName] = undefined;
+        }
+      };
+
+      window[callbackName] = (payload) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+        cleanup();
+        resolve(payload);
+      };
+
+      script.async = true;
+      script.src = `${url}${separator}callback=${encodeURIComponent(callbackName)}`;
+      script.onerror = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+        cleanup();
+        reject(new Error("Passive adoption stories request failed."));
+      };
+
+      timeoutId = window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new Error("Passive adoption stories request timed out."));
+      }, 10000);
+
+      document.head.appendChild(script);
+    });
+  }
+
+  function hydratePassiveAdoptionStoriesFromCache() {
+    const cachedStories = readPassiveAdoptionStoriesCache();
+    if (cachedStories.length) {
+      passiveAdoptionRuntime.stories = cachedStories;
+    }
+  }
+
+  async function refreshPassiveAdoptionStories() {
+    passiveAdoptionRuntime.loading = true;
+    passiveAdoptionRuntime.error = "";
+
+    const storiesUrl = getPassiveAdoptionDataUrl();
+    if (!storiesUrl) {
+      passiveAdoptionRuntime.loading = false;
+      passiveAdoptionRuntime.loaded = false;
+      renderPassiveAdoptionListPage();
+      renderPassiveAdoptionStoryPage();
+      return [];
+    }
+
+    try {
+      const payload = await loadPassiveAdoptionStoriesJsonp(storiesUrl);
+      const stories = normalizePassiveAdoptionStories(payload);
+      passiveAdoptionRuntime.stories = stories;
+      passiveAdoptionRuntime.loaded = true;
+      passiveAdoptionRuntime.error = "";
+      writePassiveAdoptionStoriesCache(stories);
+    } catch (error) {
+      passiveAdoptionRuntime.loaded = true;
+      if (!passiveAdoptionRuntime.stories.length) {
+        passiveAdoptionRuntime.error = getPassiveAdoptionConfig().errorMessage || "We couldn’t load passive adoption stories right now. Please refresh in a moment.";
+      }
+    } finally {
+      passiveAdoptionRuntime.loading = false;
+      renderPassiveAdoptionListPage();
+      renderPassiveAdoptionStoryPage();
+    }
+
+    return passiveAdoptionRuntime.stories;
+  }
+
+  function bootstrapPassiveAdoptionPages() {
+    const hasPassiveAdoptionList = Boolean(document.querySelector("[data-passive-adoption-stories]"));
+    const hasPassiveAdoptionStory = document.body.classList.contains("passive-adoption-story-page");
+
+    if (!hasPassiveAdoptionList && !hasPassiveAdoptionStory) {
+      return;
+    }
+
+    hydratePassiveAdoptionStoriesFromCache();
+    renderPassiveAdoptionListPage();
+    renderPassiveAdoptionStoryPage();
+    void refreshPassiveAdoptionStories();
+  }
+
   function setupMonthlyDonationPage() {
     const monthlyForm = document.querySelector("[data-monthly-donation-page]");
     if (!monthlyForm) {
@@ -3760,6 +4826,7 @@
   }
 
   renderPetCards();
+  bootstrapPassiveAdoptionPages();
   if (form && formFields) {
     activateForm(defaultFormType);
   }
