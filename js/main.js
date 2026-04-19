@@ -3706,6 +3706,7 @@
   setupRevealSections();
   setupCustomCursor();
   setupCursorStamping();
+  bindFootprintsLifecycle();
   setupWalkingFootprints();
   setupGoogleFormScaleToFit();
   renderInstagramFeed();
