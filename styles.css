@@ -1444,8 +1444,8 @@ body.js-ready .reveal-section.is-visible {
 }
 
 .passive-story-share img {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 16px;
+  height: 16px;
   display: block;
   filter: brightness(0) saturate(100%) invert(19%) sepia(29%) saturate(1384%) hue-rotate(42deg) brightness(88%) contrast(93%);
 }
