@@ -8,7 +8,7 @@ window.SAFESCAPE_CONFIG = {
   passiveAdoption: {
     dataUrl: "https://script.google.com/macros/s/AKfycbyHhy1jEEMoKlzbgvmtkHSaWZWgfK7o9CX3EXvD2CynAUFpDjOn3rktUkj-RN8qkyBdWQ/exec",
     cacheKey: "safescape.passiveAdoption.stories.v19",
-    loadingMessage: "We’re loading passive adoption stories from the sheet…",
+    loadingMessage: "Loading list for Passive adoption",
     refreshingMessage: "Refreshing passive adoption stories…",
     emptyMessage: "No passive adoption stories have been added yet.",
     errorMessage: "We couldn’t load passive adoption stories right now. Please refresh in a moment."
