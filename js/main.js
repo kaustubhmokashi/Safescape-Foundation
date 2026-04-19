@@ -3164,9 +3164,39 @@
     let activeWalkerCount = 0;
     const footprintHistory = [];
     const MAX_VISIBLE_FOOTPRINTS = 24;
+    const timeouts = new Set();
+    const intervals = new Set();
 
     const rand = (min, max) => min + Math.random() * (max - min);
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const trackTimeout = (callback, delay) => {
+      const id = window.setTimeout(() => {
+        timeouts.delete(id);
+        callback();
+      }, delay);
+      timeouts.add(id);
+      return id;
+    };
+    const trackInterval = (callback, delay) => {
+      const id = window.setInterval(callback, delay);
+      intervals.add(id);
+      return id;
+    };
+    const cleanup = () => {
+      timeouts.forEach((id) => window.clearTimeout(id));
+      intervals.forEach((id) => window.clearInterval(id));
+      timeouts.clear();
+      intervals.clear();
+      window.removeEventListener("resize", syncLayerHeight);
+      window.removeEventListener("orientationchange", syncLayerHeight);
+      layer.remove();
+      document.body.classList.remove("has-footprints");
+      if (window.__safescapeFootprintsCleanup === cleanup) {
+        window.__safescapeFootprintsCleanup = null;
+      }
+    };
+
+    window.__safescapeFootprintsCleanup = cleanup;
 
     const getViewport = () => ({
       width: window.innerWidth || document.documentElement.clientWidth || 1280,
@@ -3274,7 +3304,7 @@
         }
       }
 
-      window.setTimeout(() => {
+      trackTimeout(() => {
         const index = footprintHistory.indexOf(stamp);
         if (index >= 0) {
           footprintHistory.splice(index, 1);
@@ -3466,17 +3496,18 @@
       placeWalkerStep(walker, 0, stepIndex);
       stepIndex += 1;
 
-      const timer = window.setInterval(() => {
+      const timer = trackInterval(() => {
         const progress = stepCount <= 1 ? 1 : stepIndex / (stepCount - 1);
         placeWalkerStep(walker, progress, stepIndex, performance.now());
         stepIndex += 1;
 
         if (stepIndex >= stepCount) {
           window.clearInterval(timer);
+          intervals.delete(timer);
         }
       }, walker.stepInterval);
 
-      window.setTimeout(() => {
+      trackTimeout(() => {
         activeWalkerCount = Math.max(0, activeWalkerCount - 1);
       }, totalDuration + 2300);
     };
@@ -3486,7 +3517,7 @@
         launchWalker();
       }
 
-      window.setTimeout(scheduleNext, rand(3900, 8400));
+      trackTimeout(scheduleNext, rand(3900, 8400));
     };
 
     const syncLayerHeight = () => {
@@ -3502,6 +3533,52 @@
     window.addEventListener("orientationchange", syncLayerHeight, { passive: true });
 
     scheduleNext();
+  }
+
+  let footprintsHiddenSince = 0;
+  let footprintsLifecycleBound = false;
+
+  function restartFootprintsIfStale() {
+    if (!footprintsHiddenSince) {
+      return;
+    }
+
+    if (Date.now() - footprintsHiddenSince < 120000) {
+      return;
+    }
+
+    footprintsHiddenSince = 0;
+    if (typeof window.__safescapeFootprintsCleanup === "function") {
+      window.__safescapeFootprintsCleanup();
+    }
+    setupWalkingFootprints();
+  }
+
+  function bindFootprintsLifecycle() {
+    if (footprintsLifecycleBound) {
+      return;
+    }
+    footprintsLifecycleBound = true;
+
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.hidden) {
+          footprintsHiddenSince = Date.now();
+          return;
+        }
+        restartFootprintsIfStale();
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("pageshow", () => {
+      restartFootprintsIfStale();
+    });
+
+    window.addEventListener("focus", () => {
+      restartFootprintsIfStale();
+    });
   }
 
   function syncHeaderState() {
