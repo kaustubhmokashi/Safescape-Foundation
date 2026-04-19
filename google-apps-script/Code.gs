@@ -3,6 +3,10 @@ const FORM_DESTINATIONS = {
     spreadsheetId: "1Nt1wt_iYjuIBEgTsw_yOkC-nCTTYZXPxSsc_yNdJnCw",
     sheetName: "Adoption"
   },
+  passiveAdoption: {
+    spreadsheetId: "1Nt1wt_iYjuIBEgTsw_yOkC-nCTTYZXPxSsc_yNdJnCw",
+    sheetName: "Passive Adoption"
+  },
   volunteer: {
     spreadsheetId: "13COsNJ7wLW9B3J7PD-dLOsgAG67KM0cvuRB0oYeQvYo",
     sheetName: "Volunteer"

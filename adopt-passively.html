@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="assets/cursor.svg" sizes="any" />
+    <title>Passive Adoption | Safescape Foundation</title>
+    <meta
+      name="description"
+      content="Tell Safescape about the kind of companion and home you're open to offer."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260418_47" />
+  </head>
+  <body class="form-page-body" data-default-form="passiveAdoption">
+    <div class="page-shell">
+      <header class="site-header form-page-header">
+        <a class="brand" href="index.html#top" aria-label="Safescape Foundation home">
+          <img class="brand-logo" src="assets/vector-logo.svg" alt="Safescape Foundation" />
+        </a>
+
+        <div class="header-actions">
+          <a class="button button-primary button-donate" href="https://pages.razorpay.com/Safescape_Donation" target="_blank" rel="noreferrer">
+            Make a Donation
+          </a>
+        </div>
+      </header>
+
+      <main class="form-page-layout form-page-main">
+        <section class="form-page-panel form-page-panel-bare section">
+          <div class="form-panel form-panel-bare">
+            <div class="form-panel-header">
+              <h1 class="form-page-title">Passive Adoption</h1>
+              <p class="form-page-subtitle">
+                Tell us what kind of companion you’re open to, and we’ll help guide the right match with care.
+              </p>
+            </div>
+
+            <form
+              class="sheet-form"
+              id="adoption-sheet-form"
+              data-sheet-form="passiveAdoption"
+              data-sheet-name="Passive Adoption"
+              novalidate
+            >
+              <div class="form-section">
+                <h2>Passive Adoption</h2>
+                <div class="form-fields">
+                  <div class="form-field">
+                    <label for="pet_applying_name">
+                      Tell us what kind of dog or companion you are open to. ( Leave blank if you are flexible )
+                    </label>
+                    <input
+                      id="pet_applying_name"
+                      name="pet_applying_name"
+                      type="text"
+                      data-q="Tell us what kind of dog or companion you are open to. ( Leave blank if you are flexible )"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="pet_applying_breed">
+                      Any breed, size, or temperament preferences? ( Leave blank if you are flexible )
+                    </label>
+                    <input
+                      id="pet_applying_breed"
+                      name="pet_applying_breed"
+                      type="text"
+                      data-q="Any breed, size, or temperament preferences? ( Leave blank if you are flexible )"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>Personal Information</h2>
+                <p class="section-note">This helps us understand your home and the kind of match you're looking for.</p>
+                <div class="form-fields">
+                  <div class="form-field">
+                    <label for="your_name">Your Name <span aria-hidden="true">*</span></label>
+                    <input
+                      id="your_name"
+                      name="your_name"
+                      type="text"
+                      required
+                      data-q="Your Name"
+                      autocomplete="name"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="age">Age <span aria-hidden="true">*</span></label>
+                    <input id="age" name="age" type="number" inputmode="numeric" min="0" required data-q="Age" />
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="address">Address <span aria-hidden="true">*</span></label>
+                    <textarea
+                      id="address"
+                      name="address"
+                      required
+                      data-q="Address"
+                      rows="3"
+                      autocomplete="street-address"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field">
+                    <label for="phone_number">Phone number <span aria-hidden="true">*</span></label>
+                    <input
+                      id="phone_number"
+                      name="phone_number"
+                      type="tel"
+                      inputmode="tel"
+                      required
+                      data-q="Phone number"
+                      autocomplete="tel"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="email">Email <span aria-hidden="true">*</span></label>
+                    <input id="email" name="email" type="email" required data-q="Email" autocomplete="email" />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="co_applicant_name">Co-Applicant's name ( Could be your spouse )</label>
+                    <input
+                      id="co_applicant_name"
+                      name="co_applicant_name"
+                      type="text"
+                      data-q="Co-Applicant's name ( Could be your spouse )"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="co_applicant_phone">Co-Applicant's phone number</label>
+                    <input
+                      id="co_applicant_phone"
+                      name="co_applicant_phone"
+                      type="tel"
+                      inputmode="tel"
+                      data-q="Co-Applicant's phone number"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="co_applicant_email">Co-Applicant's email</label>
+                    <input
+                      id="co_applicant_email"
+                      name="co_applicant_email"
+                      type="email"
+                      data-q="Co-Applicant's email"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>Understanding your household</h2>
+                <p class="section-note">Every house is different. We are trying to look for the best fit for your household.</p>
+
+                <div class="form-fields">
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">What type of home do you live in?</legend>
+	                    <p class="question-title">What type of home do you live in? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="What type of home do you live in?" data-required="true">
+	                      <label class="choice"><input type="radio" name="home_type" value="Independant House" required /> Independant House</label>
+	                      <label class="choice"><input type="radio" name="home_type" value="Flat / Apartment" required /> Flat / Apartment</label>
+	                      <label class="choice"><input type="radio" name="home_type" value="Farm / Farmhouse" required /> Farm / Farmhouse</label>
+	                      <label class="choice"><input type="radio" name="home_type" value="PG ( Shared living space )" required /> PG ( Shared living space )</label>
+	                    </div>
+	                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">What is the type of your residence?</legend>
+	                    <p class="question-title">What is the type of your residence? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="What is the type of your residence?" data-required="true">
+	                      <label class="choice"><input type="radio" name="residence_type" value="Owned Property" required /> Owned Property</label>
+	                      <label class="choice"><input type="radio" name="residence_type" value="Rented Property" required /> Rented Property</label>
+	                      <label class="choice"><input type="radio" name="residence_type" value="Living with Family / Parents" required /> Living with Family / Parents</label>
+	                    </div>
+	                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">Do you have roommates ? ( if applicable )</legend>
+	                    <p class="question-title">Do you have roommates ? ( if applicable )</p>
+	                    <div class="choice-grid" data-q="Do you have roommates ? ( if applicable )">
+	                      <label class="choice"><input type="radio" name="roommates" value="Yes" /> Yes</label>
+	                      <label class="choice"><input type="radio" name="roommates" value="No" /> No</label>
+	                    </div>
+	                  </fieldset>
+
+                  <div class="form-field">
+                    <label for="current_address_duration">How long have you lived at your current address? <span aria-hidden="true">*</span></label>
+                    <input
+                      id="current_address_duration"
+                      name="current_address_duration"
+                      type="text"
+                      required
+                      data-q="How long have you lived at your current address?"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="moves_past_5_years">How many times have you moved in past 5 years? <span aria-hidden="true">*</span></label>
+                    <input
+                      id="moves_past_5_years"
+                      name="moves_past_5_years"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
+                      required
+                      data-q="How many times have you moved in past 5 years?"
+                    />
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="future_move_pet">If you were to move in the future, what would happen to your pet? <span aria-hidden="true">*</span></label>
+                    <textarea
+                      id="future_move_pet"
+                      name="future_move_pet"
+                      required
+                      data-q="If you were to move in the future, what would happen to your pet?"
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="landlord_contact">
+                      Please provide contact information of your landlord if you live on rent. ( optional )
+                    </label>
+                    <textarea
+                      id="landlord_contact"
+                      name="landlord_contact"
+                      data-q="Please provide contact information of your landlord if you live on rent. ( optional )"
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="children_count_age">How many children live in your house? and how old are they?</label>
+                    <textarea
+                      id="children_count_age"
+                      name="children_count_age"
+                      data-q="How many children live in your house? and how old are they?"
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">How would you describe your household?</legend>
+	                    <p class="question-title">How would you describe your household? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="How would you describe your household?" data-required="true">
+	                      <label class="choice"><input type="radio" name="household_desc" value="Loud" required /> Loud</label>
+	                      <label class="choice"><input type="radio" name="household_desc" value="Calm" required /> Calm</label>
+	                      <label class="choice"><input type="radio" name="household_desc" value="Busy" required /> Busy</label>
+	                      <label class="choice"><input type="radio" name="household_desc" value="Quiet" required /> Quiet</label>
+	                    </div>
+	                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">
+	                      Does anyone in your home suffer from pet allergies? (If planning to have a family, consider the
+	                      possibility of allergies developing in your newborn BEFORE adopting a pet)
+	                    </legend>
+	                    <p class="question-title">
+	                      Does anyone in your home suffer from pet allergies? (If planning to have a family, consider the
+	                      possibility of allergies developing in your newborn BEFORE adopting a pet)
+	                      <span aria-hidden="true">*</span>
+	                    </p>
+	                    <div class="choice-grid" data-q="Does anyone in your home suffer from pet allergies? (If planning to have a family, consider the possibility of allergies developing in your newborn BEFORE adopting a pet)" data-required="true">
+	                      <label class="choice"><input type="radio" name="pet_allergies" value="Yes" required /> Yes</label>
+	                      <label class="choice"><input type="radio" name="pet_allergies" value="No" required /> No</label>
+	                    </div>
+	                  </fieldset>
+
+                  <div class="form-field is-full">
+                    <label for="relationship_changes_pet">
+                      If your current relationship changes, with whom will your pet remain? <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="relationship_changes_pet"
+                      name="relationship_changes_pet"
+                      required
+                      data-q="If your current relationship changes, with whom will your pet remain?"
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">Do you have someone who can look after your pet in the event of serious illness/death?</legend>
+	                    <p class="question-title">
+	                      Do you have someone who can look after your pet in the event of serious illness/death?
+	                      <span aria-hidden="true">*</span>
+	                    </p>
+	                    <div class="choice-grid" data-q="Do you have someone who can look after your pet in the event of serious illness/death?" data-required="true">
+	                      <label class="choice"><input type="radio" name="backup_caregiver" value="Yes" required /> Yes</label>
+	                      <label class="choice"><input type="radio" name="backup_caregiver" value="No" required /> No</label>
+	                      <label class="choice"><input type="radio" name="backup_caregiver" value="Maybe" required /> Maybe</label>
+	                    </div>
+	                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">When outside, your pet will be ?</legend>
+	                    <p class="question-title">When outside, your pet will be ? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="When outside, your pet will be ?" data-required="true">
+	                      <label class="choice"><input type="radio" name="outside_pet" value="Tied" required /> Tied</label>
+	                      <label class="choice"><input type="radio" name="outside_pet" value="Loose" required /> Loose</label>
+	                    </div>
+	                  </fieldset>
+
+                  <div class="form-field is-full">
+                    <label for="responsible_person">
+                      Who in your household will be responsible for caring for this pet? <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="responsible_person"
+                      name="responsible_person"
+                      required
+                      data-q="Who in your household will be responsible for caring for this pet?"
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="travel_arrangements">
+                      When travelling/away from home, what arrangements will you make for the care of your pet?
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="travel_arrangements"
+                      name="travel_arrangements"
+                      required
+                      data-q="When travelling/away from home, what arrangements will you make for the care of your pet?"
+                      rows="3"
+                    ></textarea>
+                  </div>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">How much time do plan on spending each day exercising your pet?</legend>
+	                    <p class="question-title">
+	                      How much time do plan on spending each day exercising your pet?
+	                      <span aria-hidden="true">*</span>
+	                    </p>
+	                    <div class="choice-grid" data-q="How much time do plan on spending each day exercising your pet?" data-required="true">
+	                      <label class="choice"><input type="radio" name="exercise_time" value="0 - 30 mins" required /> 0 - 30 mins</label>
+	                      <label class="choice"><input type="radio" name="exercise_time" value="30 mins - 1 hour" required /> 30 mins - 1 hour</label>
+	                      <label class="choice"><input type="radio" name="exercise_time" value="1 - 2 hours" required /> 1 - 2 hours</label>
+	                      <label class="choice"><input type="radio" name="exercise_time" value="2+ Hours" required /> 2+ Hours</label>
+	                    </div>
+	                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">How do you plan to exercise your pet ?</legend>
+	                    <p class="question-title">How do you plan to exercise your pet ? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="How do you plan to exercise your pet ?" data-type="checkbox" data-required="true">
+	                      <label class="choice"><input type="checkbox" name="exercise_plan" value="Leash Walks" /> Leash Walks</label>
+	                      <label class="choice"><input type="checkbox" name="exercise_plan" value="Backyard" /> Backyard</label>
+	                      <label class="choice"><input type="checkbox" name="exercise_plan" value="Pet Park" /> Pet Park</label>
+	                      <label class="choice"><input type="checkbox" name="exercise_plan" value="Other" data-other="exercise_plan_other" /> Other</label>
+                      <div class="choice-other">
+                        <label for="exercise_plan_other">Other:</label>
+                        <input id="exercise_plan_other" name="exercise_plan_other" type="text" autocomplete="off" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <div class="form-field is-full">
+                    <label for="hours_left_alone">
+                      On an average how many hours per day will the pet be left home alone? <span aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="hours_left_alone"
+                      name="hours_left_alone"
+                      type="text"
+                      required
+                      data-q="On an average how many hours per day will the pet be left home alone?"
+                      autocomplete="off"
+                    />
+                  </div>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">Where will the pet be kept when left alone?</legend>
+	                    <p class="question-title">Where will the pet be kept when left alone? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="Where will the pet be kept when left alone?" data-required="true">
+	                      <label class="choice"><input type="radio" name="kept_when_alone" value="Loose Indoors" required /> Loose Indoors</label>
+	                      <label class="choice"><input type="radio" name="kept_when_alone" value="Outside in shed" required /> Outside in shed</label>
+	                      <label class="choice"><input type="radio" name="kept_when_alone" value="Garage" required /> Garage</label>
+	                      <label class="choice"><input type="radio" name="kept_when_alone" value="Other" required data-other="kept_when_alone_other" /> Other</label>
+                      <div class="choice-other">
+                        <label for="kept_when_alone_other">Other:</label>
+                        <input id="kept_when_alone_other" name="kept_when_alone_other" type="text" autocomplete="off" />
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>Medical Care</h2>
+                <p class="section-note">
+                  Pets can require medical help anytime. We want to ensure you're prepared enough for this responsibility
+                </p>
+                <div class="form-fields">
+                  <div class="form-field is-full">
+                    <label for="vet_budget">
+                      How much will you budget for basic veterinary care per year? (please consider annual checkups, vaccines and preventative/emergency care)
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="vet_budget"
+                      name="vet_budget"
+                      type="text"
+                      required
+                      data-q="How much will you budget for basic veterinary care per year? (please consider annual checkups, vaccines and preventative/emergency care)"
+                      autocomplete="off"
+                    />
+                  </div>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">
+	                      Are you comfortable administering medication to your pet should it become ill? (ie, pills, eye medication, injections)
+	                    </legend>
+	                    <p class="question-title">
+	                      Are you comfortable administering medication to your pet should it become ill? (ie, pills, eye medication, injections)
+	                      <span aria-hidden="true">*</span>
+	                    </p>
+	                    <div class="choice-grid" data-q="Are you comfortable administering medication to your pet should it become ill? (ie, pills, eye medication, injections)" data-required="true">
+	                      <label class="choice"><input type="radio" name="med_admin" value="Yes" required /> Yes</label>
+	                      <label class="choice"><input type="radio" name="med_admin" value="No" required /> No</label>
+	                      <label class="choice"><input type="radio" name="med_admin" value="Maybe" required /> Maybe</label>
+	                    </div>
+	                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">Do you believe in spaying/neutering</legend>
+	                    <p class="question-title">Do you believe in spaying/neutering <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="Do you believe in spaying/neutering" data-required="true">
+	                      <label class="choice"><input type="radio" name="spay_neuter" value="Yes" required /> Yes</label>
+	                      <label class="choice"><input type="radio" name="spay_neuter" value="No" required /> No</label>
+	                      <label class="choice"><input type="radio" name="spay_neuter" value="Might need advise" required /> Might need advise</label>
+	                    </div>
+	                  </fieldset>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>References</h2>
+                <p class="section-note">
+                  It would be great if we can connect with your close people. That would help us know you better.
+                </p>
+                <div class="form-fields">
+                  <div class="form-field is-full">
+                    <label for="references">
+                      Please provie atleast 2 references. Extra cookies for veterinary references!
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="references"
+                      name="references"
+                      required
+                      data-q="Please provie atleast 2 references. Extra cookies for veterinary references!"
+                      rows="6"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>Pet care experience</h2>
+                <div class="form-fields">
+                  <div class="form-field is-full">
+                    <label for="pet_care_experience">Do you have any pet care experience?</label>
+                    <textarea
+                      id="pet_care_experience"
+                      name="pet_care_experience"
+                      data-q="Do you have any pet care experience?"
+                      rows="4"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="current_pets">
+                      Tell us about your current pets: ( Species , Name, Sex, Vaccinated or not , & Age )
+                    </label>
+                    <textarea
+                      id="current_pets"
+                      name="current_pets"
+                      data-q="Tell us about your current pets: ( Species , Name, Sex, Vaccinated or not , & Age )"
+                      rows="5"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="previous_pets">
+                      Tell us about your previous pets: ( Species , Name, Sex, Vaccinated or not , & Age )
+                    </label>
+                    <textarea
+                      id="previous_pets"
+                      name="previous_pets"
+                      data-q="Tell us about your previous pets: ( Species , Name, Sex, Vaccinated or not , & Age )"
+                      rows="5"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h2>General Information</h2>
+                <p class="section-note">We’d love to understand the kind of home and companion you’re open to.</p>
+                <div class="form-fields">
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">Are you adopting this pet for yourself or someone else?</legend>
+	                    <p class="question-title">Are you adopting this pet for yourself or someone else? <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="Are you adopting this pet for yourself or someone else?" data-required="true">
+	                      <label class="choice"><input type="radio" name="adopting_for" value="I am adopting for myself" required /> I am adopting for myself</label>
+	                      <label class="choice"><input type="radio" name="adopting_for" value="Other" required data-other="adopting_for_other" /> Other</label>
+                      <div class="choice-other">
+                        <label for="adopting_for_other">Other:</label>
+                        <input id="adopting_for_other" name="adopting_for_other" type="text" autocomplete="off" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">Why are you adopting a pet? (Check all that apply)</legend>
+	                    <p class="question-title">Why are you adopting a pet? (Check all that apply) <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="Why are you adopting a pet? (Check all that apply)" data-type="checkbox" data-required="true">
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Companion" /> Companion</label>
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Teach child responsibility" /> Teach child responsibility</label>
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Protection" /> Protection</label>
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Companion for existing pet(s)" /> Companion for existing pet(s)</label>
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Hunting" /> Hunting</label>
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Working Dog" /> Working Dog</label>
+                      <label class="choice"><input type="checkbox" name="why_adopt" value="Other" data-other="why_adopt_other" /> Other</label>
+                      <div class="choice-other">
+                        <label for="why_adopt_other">Other:</label>
+                        <input id="why_adopt_other" name="why_adopt_other" type="text" autocomplete="off" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">For what reason would you return/re-home your pet? (Check all that apply)</legend>
+	                    <p class="question-title">For what reason would you return/re-home your pet? (Check all that apply) <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="For what reason would you return/re-home your pet? (Check all that apply)" data-type="checkbox" data-required="true">
+                      <label class="choice"><input type="checkbox" name="why_return" value="Allergies" /> Allergies</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Moving" /> Moving</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Seperation / Divorce" /> Seperation / Divorce</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="New Baby" /> New Baby</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Behavioural issues" /> Behavioural issues</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Large veterinary bill" /> Large veterinary bill</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Not getting along with other pets" /> Not getting along with other pets</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Chronic medical illness" /> Chronic medical illness</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Barking / training issues" /> Barking / training issues</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Agression issues" /> Agression issues</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Death in the family" /> Death in the family</label>
+                      <label class="choice"><input type="checkbox" name="why_return" value="Other" data-other="why_return_other" /> Other</label>
+                      <div class="choice-other">
+                        <label for="why_return_other">Other:</label>
+                        <input id="why_return_other" name="why_return_other" type="text" autocomplete="off" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <div class="form-field is-full">
+                    <label for="monthly_feed_cost">
+                      How much do you think it costs to feed one pet for one month? (Keep in mind! Some pet may require a specialised diet)
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="monthly_feed_cost"
+                      name="monthly_feed_cost"
+                      type="text"
+                      required
+                      data-q="How much do you think it costs to feed one pet for one month? (Keep in mind! Some pet may require a specialised diet)"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="not_tolerate_behaviours">
+                      What kind of behaviours would you NOT tolerate from you new pet? (ie: digging/chewing/not house trained)
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="not_tolerate_behaviours"
+                      name="not_tolerate_behaviours"
+                      required
+                      data-q="What kind of behaviours would you NOT tolerate from you new pet? (ie: digging/chewing/not house trained)"
+                      rows="4"
+                    ></textarea>
+                  </div>
+
+	                  <fieldset class="form-field is-full">
+	                    <legend class="sr-only">What are your plans for training this pet? (check all that apply)</legend>
+	                    <p class="question-title">What are your plans for training this pet? (check all that apply) <span aria-hidden="true">*</span></p>
+	                    <div class="choice-grid" data-q="What are your plans for training this pet? (check all that apply)" data-type="checkbox" data-required="true">
+                      <label class="choice"><input type="checkbox" name="training_plans" value="I am experienced and don't need help" /> I am experienced and don't need help</label>
+                      <label class="choice"><input type="checkbox" name="training_plans" value="Basic obedience classes" /> Basic obedience classes</label>
+                      <label class="choice"><input type="checkbox" name="training_plans" value="Private consultations with a trainer" /> Private consultations with a trainer</label>
+                      <label class="choice"><input type="checkbox" name="training_plans" value="Watching popular TV show trainers" /> Watching popular TV show trainers</label>
+                    </div>
+                  </fieldset>
+
+                  <div class="form-field is-full">
+                    <label for="applied_before">
+                      Have you ever applied for a pet before from a shelter? If so, which pet and from which shelter?
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="applied_before"
+                      name="applied_before"
+                      required
+                      data-q="Have you ever applied for a pet before from a shelter? If so, which pet and from which shelter?"
+                      rows="4"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-field is-full">
+                    <label for="important_responsibilities">
+                      What do you believe are the most important responsibilities when caring for a pet?
+                      <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      id="important_responsibilities"
+                      name="important_responsibilities"
+                      required
+                      data-q="What do you believe are the most important responsibilities when caring for a pet?"
+                      rows="4"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions-row form-actions-row-stacked">
+                <button class="button button-primary" type="button" id="confirm-button">Confirm</button>
+                <p class="form-status" role="status" aria-live="polite" data-form-status></p>
+              </div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
+      <div class="terms-dialog-card">
+        <div class="terms-dialog-head">
+          <p class="terms-kicker">Safescape Foundation</p>
+          <h2 class="terms-title" id="terms-title">Terms &amp; Conditions</h2>
+        </div>
+        <div class="terms-scroll" id="terms-scroll" role="document" aria-label="Terms and Conditions">
+          <div class="terms-content">
+            <p>
+              Dear Adopter, Thank you for choosing to embark on the journey of pet adoption with Safescape Foundation.
+              We appreciate your commitment to providing a loving home for a furry companion. Our goal is to
+              facilitate the perfect match between pets and adopters, taking into consideration the unique
+              characteristics of both the animal and your living situation.
+            </p>
+            <p>
+              As part of our adoption process, we utilize this application as an initial step to align your lifestyle,
+              needs, and experience with our knowledge of the animals in our care. Rest assured, we are dedicated to
+              ensuring that each animal finds a suitable and enduring home.
+            </p>
+            <p>For your awareness, kindly note the following important information:</p>
+            <ol class="terms-numbered">
+              <li>
+                <strong>Financial Responsibility:</strong> All adopters are accountable for veterinary care and
+                medical expenses incurred post-adoption.
+              </li>
+              <li>
+                <strong>Re-homing Procedures:</strong> In the event that circumstances necessitate re-homing your new
+                pet, we kindly request that you contact us first.
+              </li>
+              <li>
+                <strong>Verification of Information:</strong> We reserve the right to verify all information provided
+                on the adoption application, including veterinary references and landlord details.
+              </li>
+            </ol>
+            <p>By affixing your signature below, you acknowledge the following:</p>
+            <ul class="terms-bullets">
+              <li>
+                I certify that the information provided in this application is accurate. Any misrepresentation may
+                result in the forfeiture of the privilege to adopt a pet.
+              </li>
+              <li>
+                I understand that the adoption process is not on a first-come, first-serve basis, and Safescape
+                Foundation reserves the right to deny adoption requests.
+              </li>
+              <li>I authorize the investigation of all statements contained in this application.</li>
+            </ul>
+            <p>
+              Thank you for your prompt attention to these matters. All responses and information shared will be
+              treated with the utmost confidentiality.
+            </p>
+            <p>
+              Please be advised that due to the high volume of applications, only successful applicants will be
+              contacted within 1-3 business days.
+            </p>
+            <p class="terms-signoff">
+              Sincerely,<br />
+              Safescape Foundation
+            </p>
+          </div>
+        </div>
+        <div class="terms-state" id="terms-state">
+          <label class="terms-agree" id="terms-agree-wrap">
+            <input type="checkbox" id="terms-agree" />
+            <span>I agree with all above points</span>
+          </label>
+        </div>
+        <div class="terms-actions" id="terms-actions">
+          <button class="button button-primary" type="button" id="terms-submit">
+            <span class="terms-submit-text">Submit</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="js/site-config.js?v=20260418_47"></script>
+    <script src="js/main.js?v=20260418_47"></script>
+  </body>
+</html>
