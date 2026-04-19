@@ -1418,6 +1418,12 @@ body.js-ready .reveal-section.is-visible {
   margin-inline: auto;
 }
 
+.monthly-donation-page .form-panel-header,
+.monthly-donation-page .lead-form {
+  width: min(80vw, 750px);
+  margin-inline: auto;
+}
+
 .form-page-main {
   display: grid;
   gap: 1.5rem;
@@ -2957,15 +2963,26 @@ a.footer-donate-button:hover {
     flex-direction: column;
   }
 
-  .form-page-body .form-page-layout,
-  .form-page-body .form-page-header {
-    width: min(calc(100% - 2rem), var(--max-width));
-  }
+.form-page-body .form-page-layout,
+.form-page-body .form-page-header {
+  width: min(calc(100% - 2rem), var(--max-width));
+}
 
-  .form-page-body .form-panel-header,
-  .form-page-body .sheet-form {
-    width: min(calc(100% - 1rem), 750px);
-  }
+.form-page-body .form-panel-header,
+.form-page-body .sheet-form {
+  width: min(calc(100% - 1rem), 750px);
+}
+
+.monthly-donation-page .form-page-layout,
+.monthly-donation-page .form-page-header {
+  width: min(calc(100% - 2rem), var(--max-width));
+}
+
+.monthly-donation-page .form-panel-header,
+.monthly-donation-page .lead-form {
+  width: min(80vw, 750px);
+  margin-inline: auto;
+}
 
 }
 
