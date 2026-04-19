@@ -3952,6 +3952,32 @@
     });
   }
 
+  function showPassiveAdoptionToast(message) {
+    const existing = document.querySelector("[data-passive-toast]");
+    if (existing) {
+      existing.remove();
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "passive-story-toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    toast.setAttribute("data-passive-toast", "true");
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    window.requestAnimationFrame(() => {
+      toast.classList.add("is-visible");
+    });
+
+    window.setTimeout(() => {
+      toast.classList.remove("is-visible");
+      window.setTimeout(() => {
+        toast.remove();
+      }, 220);
+    }, 1800);
+  }
+
   function normalizePassiveAdoptionKey(value) {
     return String(value || "")
       .toLowerCase()
@@ -4510,7 +4536,6 @@
     const title = document.querySelector(".passive-story-copy h1, [data-passive-story-name]");
     const storyBody = document.querySelector(".passive-story-body, [data-passive-story-body]");
     const storyFigure = document.querySelector(".passive-story-figure");
-    const storyShareButton = document.querySelector("[data-passive-story-share]");
     const adoptCta = document.querySelector("[data-passive-adopt-cta]");
     const donateCta = document.querySelector("[data-passive-donate-cta]");
     const medicalNoteClass = story && story.needsMedicalAttention ? "" : " is-hidden";
@@ -4575,6 +4600,15 @@
           ? `
             <figure class="passive-story-slide is-active" data-passive-story-slide="${activeIndex}">
               <img src="${escapeHtml(activeSlide.src || "")}" alt="${escapeHtml(activeSlide.alt || `${story.name} photo ${activeIndex + 1}`)}" loading="eager" />
+              <button
+                type="button"
+                class="passive-story-share"
+                data-passive-story-share
+                aria-label="Share this dog's story"
+                title="Share"
+              >
+                <img src="assets/arrow-up-from-bracket.svg" alt="" aria-hidden="true" />
+              </button>
             </figure>
           `
           : "";
@@ -4612,14 +4646,15 @@
 
       renderCarousel();
     }
+    const storyShareButton = storyFigure ? storyFigure.querySelector("[data-passive-story-share]") : null;
     if (donateCta) {
       donateCta.hidden = Boolean(story.passiveAdopted);
     }
     if (adoptCta) {
       adoptCta.textContent = adoptState.label;
       adoptCta.href = adoptState.href;
-      adoptCta.classList.toggle("button-primary", !story.passiveAdopted);
-      adoptCta.classList.toggle("button-secondary", Boolean(story.passiveAdopted));
+      adoptCta.classList.add("button-primary");
+      adoptCta.classList.remove("button-secondary");
       adoptCta.hidden = false;
     }
     if (storyShareButton) {
@@ -4641,6 +4676,7 @@
         try {
           await navigator.clipboard.writeText(shareData.url);
           storyShareButton.classList.add("is-copied");
+          showPassiveAdoptionToast("Story link copied to clipboard.");
           window.clearTimeout(storyShareButton.__copyResetTimer);
           storyShareButton.__copyResetTimer = window.setTimeout(() => {
             storyShareButton.classList.remove("is-copied");
