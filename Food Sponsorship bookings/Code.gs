@@ -375,7 +375,7 @@ function blockCalendarForPaidRow_(sheet, map, row) {
   }
 
   var status = getCellByHeader_(sheet, map, row, 'calendar_status').toLowerCase();
-  if (status === 'blocked') {
+  if (status === 'blocked' || status === 'processing') {
     return;
   }
 
@@ -396,7 +396,7 @@ function blockCalendarForPaidRow_(sheet, map, row) {
   };
 
   try {
-    updateCellIfPresent_(sheet, map, row, 'calendar_status', 'not_started');
+    updateCellIfPresent_(sheet, map, row, 'calendar_status', 'processing');
     updateCellIfPresent_(sheet, map, row, 'calendar_error', '');
 
     var response = UrlFetchApp.fetch(syncUrl, {
@@ -529,6 +529,9 @@ function getStatusByRequestId_(requestId) {
 }
 
 function upsertWebhookEvent_(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
   var sheet = getSheet_();
   var map = headersIndexMap_(sheet);
 
@@ -609,6 +612,9 @@ function upsertWebhookEvent_(payload) {
     payment_id: paymentId,
     order_id: orderId
   };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function doGet(e) {
