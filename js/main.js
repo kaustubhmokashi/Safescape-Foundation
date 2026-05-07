@@ -1347,11 +1347,11 @@
     const emailValue = normalizeValue(emailInput && emailInput.value);
     const directPaymentUrl = String(foodSponsorship.directPaymentUrl || "").trim();
     const testPaymentUrl = String(foodSponsorship.testPaymentUrl || "").trim();
-    if (mode === "days" && directPaymentUrl) {
-      return directPaymentUrl;
-    }
     if (emailValue.toLowerCase() === "0000@0000.com" && testPaymentUrl) {
       return testPaymentUrl;
+    }
+    if (mode === "days" && directPaymentUrl) {
+      return directPaymentUrl;
     }
     const count = getFoodSponsorshipSelectionCount(formEl);
     const byCount =
@@ -1366,12 +1366,12 @@
     if (mode === "calendar") {
       const selectedDates = getFoodSponsorshipSelectedDates(formEl);
       if (selectedDates.length === 1) {
-        return `Application submitted successfully. ${formatCalendarDateLabel(selectedDates[0])} will be blocked on Google Calendar.`;
+        return `Application submitted successfully. We are awaiting payment confirmation for ${formatCalendarDateLabel(selectedDates[0])}.`;
       }
       if (selectedDates.length > 1) {
-        return `Application submitted successfully. ${selectedDates.length} selected dates will be blocked on Google Calendar.`;
+        return `Application submitted successfully. We are awaiting payment confirmation for ${selectedDates.length} selected dates.`;
       }
-      return "Application submitted successfully. No calendar dates were selected.";
+      return "Application submitted successfully. We are awaiting payment confirmation.";
     }
 
     const days = getFoodSponsorshipSelectionCount(formEl);
@@ -1380,6 +1380,117 @@
     }
 
     return "Application submitted successfully.";
+  }
+
+  function getFoodSponsorshipBookingsEndpoint(action) {
+    const foodSponsorship = getFoodSponsorshipConfig();
+    const baseUrl = String(foodSponsorship.bookingsUrl || "").trim();
+    if (!baseUrl) {
+      return "";
+    }
+
+    try {
+      const url = new URL(baseUrl, window.location.href);
+      if (action) {
+        url.searchParams.set("action", action);
+      }
+      return url.toString();
+    } catch (error) {
+      if (!action) {
+        return baseUrl;
+      }
+      const separator = baseUrl.includes("?") ? "&" : "?";
+      return `${baseUrl}${separator}action=${encodeURIComponent(action)}`;
+    }
+  }
+
+  function createFoodSponsorshipRequestId() {
+    const randomPart = Math.random().toString(36).slice(2, 10);
+    return `req_food_${Date.now()}_${randomPart}`;
+  }
+
+  function getOrCreateFoodSponsorshipRequestId(formEl) {
+    if (!formEl) {
+      return createFoodSponsorshipRequestId();
+    }
+    let input = formEl.querySelector("#food-request-id");
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "hidden";
+      input.id = "food-request-id";
+      input.name = "requestId";
+      formEl.appendChild(input);
+    }
+    if (!normalizeValue(input.value)) {
+      input.value = createFoodSponsorshipRequestId();
+    }
+    return normalizeValue(input.value);
+  }
+
+  function getFoodSponsorshipAmountEstimate(formEl) {
+    const count = getFoodSponsorshipSelectionCount(formEl);
+    const foodSponsorship = getFoodSponsorshipConfig();
+    const byDays = foodSponsorship.paymentUrlsByDays || {};
+    const mappedUrl = String(byDays[count] || "").trim();
+    if (!mappedUrl) {
+      return 0;
+    }
+    return 0;
+  }
+
+  async function queueFoodSponsorshipPendingBooking(formEl, paymentUrl) {
+    const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
+    if (!endpoint || !formEl) {
+      return;
+    }
+
+    const requestId = getOrCreateFoodSponsorshipRequestId(formEl);
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+    const email = normalizeValue(formEl.querySelector("#email") && formEl.querySelector("#email").value);
+    const occasion = normalizeValue(formEl.querySelector("#occasion") && formEl.querySelector("#occasion").value);
+    const selectedDates = mode === "calendar" ? getFoodSponsorshipSelectedDates(formEl) : [];
+
+    const payload = {
+      request_id: requestId,
+      action: "createPending",
+      flow_type: "food_sponsorship",
+      email: email,
+      occasion: occasion,
+      selected_dates: JSON.stringify(selectedDates),
+      razorpay_payment_link_url: String(paymentUrl || "").trim(),
+      payment_status: "pending",
+      calendar_status: mode === "calendar" ? "not_started" : "",
+      notes: mode === "calendar" ? "Pending booking created before calendar sponsorship payment redirect." : "Pending booking created before direct payment redirect."
+    };
+
+    const formBody = new URLSearchParams(payload).toString();
+
+    // sendBeacon is often more reliable for local/file:// origins and redirects.
+    if (navigator.sendBeacon) {
+      try {
+        const beaconOk = navigator.sendBeacon(
+          endpoint,
+          new Blob([formBody], { type: "application/x-www-form-urlencoded;charset=UTF-8" })
+        );
+        if (beaconOk) {
+          return;
+        }
+      } catch (error) {
+        // Fall back to fetch below.
+      }
+    }
+
+    await fetch(endpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+      },
+      body: formBody,
+      keepalive: true
+    }).catch(() => {
+      // Best effort; payment flow should still continue.
+    });
   }
 
   function getFoodSponsorshipSelectedDates(formEl) {
@@ -2508,8 +2619,9 @@
   async function submitSheetForm(formEl, statusEl) {
     const webAppUrl = getSheetWebAppUrl(formEl);
     const fileInputs = Array.from(formEl.querySelectorAll("input[type='file']"));
+    const isFoodSponsorship = activeFormType === "foodSponsorship";
     const foodSponsorshipPaymentUrl =
-      activeFormType === "foodSponsorship" ? resolveFoodSponsorshipPaymentUrl(formEl) : "";
+      isFoodSponsorship ? resolveFoodSponsorshipPaymentUrl(formEl) : "";
 
     function setStatus(message, type) {
       if (!statusEl) {
@@ -2522,7 +2634,7 @@
       }
     }
 
-    if (!webAppUrl) {
+    if (!webAppUrl && !isFoodSponsorship) {
       setStatus(
         (config.forms && config.forms.missingConfigMessage) ||
           "This form is being connected on the new site. Please contact Safescape directly if you need immediate help.",
@@ -2533,9 +2645,16 @@
 
     const { questionOrder, responses, uploads } = await collectSheetSubmissionData(formEl);
     const successMessage =
-      activeFormType === "foodSponsorship"
+      isFoodSponsorship
         ? getFoodSponsorshipSubmissionMessage(formEl)
         : (config.forms && config.forms.successMessage) || "Thanks. Your form was sent successfully.";
+
+    if (isFoodSponsorship) {
+      formEl.reset();
+      setStatus(successMessage, "success");
+      return { ok: true, paymentUrl: foodSponsorshipPaymentUrl, successMessage };
+    }
+
     fileInputs.forEach((control) => {
       const items = getFileUploadItems(control);
       if (control && items.length) {
@@ -2561,10 +2680,6 @@
         mode: "no-cors",
         body: payload
       });
-
-      if (activeFormType === "foodSponsorship") {
-        await queueFoodSponsorshipBlockedDates(formEl);
-      }
 
       formEl.reset();
       fileInputs.forEach((control) => {
@@ -2801,6 +2916,9 @@
 
       if (confirmButton && dialogEl && agreeInput) {
         confirmButton.addEventListener("click", async () => {
+          if (sheetForm.dataset.foodRedirectPending === "true") {
+            return;
+          }
           const { ok: isValid, firstInvalid } = validateSheetForm(sheetForm);
           if (!isValid) {
             if (firstInvalid && typeof firstInvalid.scrollIntoView === "function") {
@@ -2835,9 +2953,12 @@
               return;
             }
             if (statusEl) {
-              statusEl.textContent = "Redirecting to Payment";
+              statusEl.textContent = "Awaiting payment confirmation. Redirecting to payment...";
               statusEl.classList.remove("is-error", "is-success");
             }
+            sheetForm.dataset.foodRedirectPending = "true";
+            confirmButton.disabled = true;
+            await queueFoodSponsorshipPendingBooking(sheetForm, paymentUrl);
             window.location.href = paymentUrl;
             return;
           }
@@ -2876,6 +2997,9 @@
             };
             syncTermsSubmitButtonState();
             newSubmitButton.addEventListener("click", async () => {
+              if (sheetForm.dataset.foodRedirectPending === "true") {
+                return;
+              }
               setDialogError("");
           if (!agreeInput.checked) {
             setTermsDialogState(null, "");
@@ -2886,13 +3010,20 @@
 
           setTermsSubmitLoading(true);
           if (activeFormType === "foodSponsorship") {
-            setTermsDialogState("loading", "Adding to calendar");
+            setTermsDialogState("loading", "Awaiting payment confirmation");
+          }
+          if (activeFormType === "foodSponsorship") {
+            const paymentUrlForPending = resolveFoodSponsorshipPaymentUrl(sheetForm);
+            if (paymentUrlForPending) {
+              await queueFoodSponsorshipPendingBooking(sheetForm, paymentUrlForPending);
+            }
           }
           const result = await submitSheetForm(sheetForm, statusEl);
           if (result.ok) {
             const paymentUrl = String(result.paymentUrl || "").trim();
             if (activeFormType === "foodSponsorship" && paymentUrl) {
               setTermsDialogState("loading", "Redirecting to Payment");
+              sheetForm.dataset.foodRedirectPending = "true";
               await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
               setTermsSubmitLoading(false);
               window.location.href = paymentUrl;
@@ -3750,6 +3881,7 @@
     loaded: false,
     error: ""
   };
+  const passiveAdoptionCacheTtlMs = 12 * 60 * 60 * 1000;
 
   function getPassiveAdoptionConfig() {
     return (config && config.passiveAdoption) || {};
@@ -3788,7 +3920,24 @@
         return [];
       }
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? normalizePassiveAdoptionStories(parsed) : [];
+      if (Array.isArray(parsed)) {
+        window.localStorage.removeItem(getPassiveAdoptionCacheKey());
+        return [];
+      }
+
+      const savedAt = Number(parsed && parsed.savedAt);
+      const stories = Array.isArray(parsed && parsed.stories) ? parsed.stories : [];
+      if (!stories.length || !Number.isFinite(savedAt)) {
+        window.localStorage.removeItem(getPassiveAdoptionCacheKey());
+        return [];
+      }
+
+      if (Date.now() - savedAt > passiveAdoptionCacheTtlMs) {
+        window.localStorage.removeItem(getPassiveAdoptionCacheKey());
+        return [];
+      }
+
+      return normalizePassiveAdoptionStories(stories);
     } catch (error) {
       return [];
     }
@@ -3800,7 +3949,13 @@
     }
 
     try {
-      window.localStorage.setItem(getPassiveAdoptionCacheKey(), JSON.stringify(Array.isArray(stories) ? stories : []));
+      window.localStorage.setItem(
+        getPassiveAdoptionCacheKey(),
+        JSON.stringify({
+          savedAt: Date.now(),
+          stories: Array.isArray(stories) ? stories : []
+        })
+      );
     } catch (error) {
       // ignore cache write issues
     }
@@ -3887,13 +4042,7 @@
   function getPassiveAdoptionStoryShareData(story) {
     const url = new URL(window.location.href);
     const shareUrl = `${url.origin}${url.pathname}?story=${encodeURIComponent(story.slug)}`;
-    const description = Array.isArray(story.storyLines) && story.storyLines.length
-      ? story.storyLines.slice(0, 3).join(" ")
-      : String(story.preview || story.storyText || "").split(/\r?\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 3).join(" ");
-
     return {
-      title: `${story.name} | Adopt Passively | Safescape Foundation`,
-      text: description,
       url: shareUrl
     };
   }
@@ -4538,6 +4687,7 @@
     const storyFigure = document.querySelector(".passive-story-figure");
     const adoptCta = document.querySelector("[data-passive-adopt-cta]");
     const donateCta = document.querySelector("[data-passive-donate-cta]");
+    const statusNote = document.querySelector("[data-passive-story-status-note]");
     const medicalNoteClass = story && story.needsMedicalAttention ? "" : " is-hidden";
     const adoptState = getPassiveAdoptionPrimaryCtaDetails(story);
     const photos = Array.isArray(story.photos) && story.photos.length
@@ -4656,6 +4806,26 @@
       adoptCta.classList.add("button-primary");
       adoptCta.classList.remove("button-secondary");
       adoptCta.hidden = false;
+      adoptCta.onclick = null;
+      if (!story.passiveAdopted) {
+        adoptCta.onclick = (event) => {
+          event.preventDefault();
+          adoptCta.textContent = "Opening Payment Page...";
+          adoptCta.classList.add("is-loading");
+          adoptCta.setAttribute("aria-busy", "true");
+          if (statusNote) {
+            statusNote.hidden = false;
+          }
+          window.requestAnimationFrame(() => {
+            window.setTimeout(() => {
+              window.location.href = adoptState.href;
+            }, 3000);
+          });
+        };
+      }
+    }
+    if (statusNote) {
+      statusNote.hidden = true;
     }
     if (storyShareButton) {
       storyShareButton.hidden = false;
@@ -4666,7 +4836,7 @@
 
         if (canNativeShare) {
           try {
-            await navigator.share(shareData);
+            await navigator.share({ url: shareData.url });
             return;
           } catch (error) {
             // fall back to copy
