@@ -3083,14 +3083,24 @@
 
           setTermsSubmitLoading(true);
           if (activeFormType === "foodSponsorship") {
-            setTermsDialogState("loading", "Awaiting payment confirmation");
-          }
-          if (activeFormType === "foodSponsorship") {
-            const paymentUrlForPending = resolveFoodSponsorshipPaymentUrl(sheetForm);
-            if (paymentUrlForPending) {
-              await queueFoodSponsorshipPendingBooking(sheetForm, paymentUrlForPending);
+            const paymentUrl = resolveFoodSponsorshipPaymentUrl(sheetForm);
+            if (!paymentUrl) {
+              setTermsSubmitLoading(false);
+              setTermsDialogState("error", "Payment link is not configured yet.");
+              setDialogError("Payment link is not configured yet.");
+              return;
             }
+
+            setTermsDialogState("loading", "Awaiting payment confirmation. Redirecting to payment...");
+            sheetForm.dataset.foodRedirectPending = "true";
+            await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+            setTermsSubmitLoading(false);
+
+            const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(sheetForm, paymentUrl);
+            window.location.href = pendingRedirectUrl || paymentUrl;
+            return;
           }
+
           const result = await submitSheetForm(sheetForm, statusEl);
           if (result.ok) {
             const paymentUrl = String(result.paymentUrl || "").trim();
