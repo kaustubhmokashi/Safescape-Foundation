@@ -623,6 +623,17 @@ function doGet(e) {
   try {
     var action = String((e && e.parameter && e.parameter.action) || 'health').trim();
 
+    if (action === 'createPending') {
+      var pendingResult = appendPendingRow_(e && e.parameter ? e.parameter : {});
+      return jsonResponse({
+        ok: true,
+        action: action,
+        request_id: pendingResult.request_id,
+        row: pendingResult.row,
+        duplicate: pendingResult.duplicate
+      });
+    }
+
     if (action === 'getStatus') {
       var requestId = String((e && e.parameter && e.parameter.request_id) || '').trim();
       if (!requestId) {

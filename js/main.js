@@ -1462,6 +1462,19 @@
       calendar_status: mode === "calendar" ? "not_started" : "",
       notes: mode === "calendar" ? "Pending booking created before calendar sponsorship payment redirect." : "Pending booking created before direct payment redirect."
     };
+
+    const getUrl = (() => {
+      try {
+        const url = new URL(endpoint, window.location.href);
+        Object.keys(payload).forEach((key) => {
+          url.searchParams.set(key, String(payload[key] == null ? "" : payload[key]));
+        });
+        return url.toString();
+      } catch (error) {
+        return "";
+      }
+    })();
+
     const iframeName = `food-pending-target-${Date.now()}`;
     const iframe = document.createElement("iframe");
     iframe.name = iframeName;
@@ -1483,9 +1496,31 @@
     });
 
     document.body.appendChild(postForm);
+    const postAttempt = new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve();
+      };
+      iframe.addEventListener("load", done, { once: true });
+      window.setTimeout(done, 1400);
+    });
     postForm.submit();
 
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    await postAttempt;
+
+    if (getUrl) {
+      try {
+        const beaconImage = new Image();
+        beaconImage.referrerPolicy = "no-referrer";
+        beaconImage.src = getUrl;
+      } catch (error) {
+        // Ignore fallback failures.
+      }
+    }
 
     postForm.remove();
     iframe.remove();
