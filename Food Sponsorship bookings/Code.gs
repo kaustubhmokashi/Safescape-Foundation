@@ -673,6 +673,17 @@ function doPost(e) {
 
     if (action === 'createPending') {
       var result = appendPendingRow_(payload);
+      var redirectToPost = String(payload.redirect_to || '').trim();
+      if (redirectToPost) {
+        return HtmlService.createHtmlOutput(
+          '<!doctype html><html><head><meta charset="utf-8">' +
+          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<title>Redirecting…</title></head><body>' +
+          '<script>window.top.location.href=' + JSON.stringify(redirectToPost) + ';</script>' +
+          '<noscript><meta http-equiv="refresh" content="0;url=' + redirectToPost.replace(/"/g, '&quot;') + '"></noscript>' +
+          '<p>Redirecting to payment…</p></body></html>'
+        );
+      }
       return jsonResponse({
         ok: true,
         action: action,

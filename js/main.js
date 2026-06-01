@@ -1473,6 +1473,54 @@
     }
   }
 
+  function submitFoodSponsorshipPendingAndRedirect(formEl, paymentUrl) {
+    const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
+    if (!endpoint || !formEl || !paymentUrl) {
+      window.location.href = paymentUrl;
+      return;
+    }
+
+    const requestId = getOrCreateFoodSponsorshipRequestId(formEl);
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+    const email = normalizeValue(formEl.querySelector("#email") && formEl.querySelector("#email").value);
+    const occasion = normalizeValue(formEl.querySelector("#occasion") && formEl.querySelector("#occasion").value);
+    const selectedDates = mode === "calendar" ? getFoodSponsorshipSelectedDates(formEl) : [];
+
+    const payload = {
+      request_id: requestId,
+      action: "createPending",
+      flow_type: "food_sponsorship",
+      email: email,
+      occasion: occasion,
+      selected_dates: JSON.stringify(selectedDates),
+      razorpay_payment_link_url: String(paymentUrl || "").trim(),
+      payment_status: "pending",
+      calendar_status: mode === "calendar" ? "not_started" : "",
+      notes:
+        mode === "calendar"
+          ? "Pending booking created before calendar sponsorship payment redirect."
+          : "Pending booking created before direct payment redirect.",
+      redirect_to: paymentUrl
+    };
+
+    const postForm = document.createElement("form");
+    postForm.method = "POST";
+    postForm.action = endpoint;
+    postForm.target = "_self";
+    postForm.style.display = "none";
+
+    Object.keys(payload).forEach((key) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = String(payload[key] == null ? "" : payload[key]);
+      postForm.appendChild(input);
+    });
+
+    document.body.appendChild(postForm);
+    postForm.submit();
+  }
+
   async function queueFoodSponsorshipPendingBooking(formEl, paymentUrl) {
     const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
     if (!endpoint || !formEl) {
@@ -3026,13 +3074,7 @@
             }
             sheetForm.dataset.foodRedirectPending = "true";
             confirmButton.disabled = true;
-            const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(sheetForm, paymentUrl);
-            if (pendingRedirectUrl) {
-              window.location.href = pendingRedirectUrl;
-              return;
-            }
-            await queueFoodSponsorshipPendingBooking(sheetForm, paymentUrl);
-            window.location.href = paymentUrl;
+            submitFoodSponsorshipPendingAndRedirect(sheetForm, paymentUrl);
             return;
           }
 
@@ -3095,9 +3137,7 @@
             sheetForm.dataset.foodRedirectPending = "true";
             await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
             setTermsSubmitLoading(false);
-
-            const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(sheetForm, paymentUrl);
-            window.location.href = pendingRedirectUrl || paymentUrl;
+            submitFoodSponsorshipPendingAndRedirect(sheetForm, paymentUrl);
             return;
           }
 
