@@ -624,7 +624,19 @@ function doGet(e) {
     var action = String((e && e.parameter && e.parameter.action) || 'health').trim();
 
     if (action === 'createPending') {
-      var pendingResult = appendPendingRow_(e && e.parameter ? e.parameter : {});
+      var params = e && e.parameter ? e.parameter : {};
+      var pendingResult = appendPendingRow_(params);
+      var redirectTo = String(params.redirect_to || '').trim();
+      if (redirectTo) {
+        return HtmlService.createHtmlOutput(
+          '<!doctype html><html><head><meta charset="utf-8">' +
+          '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+          '<title>Redirecting…</title></head><body>' +
+          '<script>window.top.location.href=' + JSON.stringify(redirectTo) + ';</script>' +
+          '<noscript><meta http-equiv="refresh" content="0;url=' + redirectTo.replace(/"/g, '&quot;') + '"></noscript>' +
+          '<p>Redirecting to payment…</p></body></html>'
+        );
+      }
       return jsonResponse({
         ok: true,
         action: action,

@@ -1438,6 +1438,41 @@
     return 0;
   }
 
+  function buildFoodSponsorshipPendingRedirectUrl(formEl, paymentUrl) {
+    const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
+    if (!endpoint || !formEl || !paymentUrl) {
+      return "";
+    }
+
+    const requestId = getOrCreateFoodSponsorshipRequestId(formEl);
+    const mode = getFoodSponsorshipVisibleMode(formEl);
+    const email = normalizeValue(formEl.querySelector("#email") && formEl.querySelector("#email").value);
+    const occasion = normalizeValue(formEl.querySelector("#occasion") && formEl.querySelector("#occasion").value);
+    const selectedDates = mode === "calendar" ? getFoodSponsorshipSelectedDates(formEl) : [];
+
+    try {
+      const url = new URL(endpoint, window.location.href);
+      url.searchParams.set("request_id", requestId);
+      url.searchParams.set("flow_type", "food_sponsorship");
+      url.searchParams.set("email", email);
+      url.searchParams.set("occasion", occasion);
+      url.searchParams.set("selected_dates", JSON.stringify(selectedDates));
+      url.searchParams.set("razorpay_payment_link_url", String(paymentUrl || "").trim());
+      url.searchParams.set("payment_status", "pending");
+      url.searchParams.set("calendar_status", mode === "calendar" ? "not_started" : "");
+      url.searchParams.set(
+        "notes",
+        mode === "calendar"
+          ? "Pending booking created before calendar sponsorship payment redirect."
+          : "Pending booking created before direct payment redirect."
+      );
+      url.searchParams.set("redirect_to", paymentUrl);
+      return url.toString();
+    } catch (error) {
+      return "";
+    }
+  }
+
   async function queueFoodSponsorshipPendingBooking(formEl, paymentUrl) {
     const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
     if (!endpoint || !formEl) {
@@ -2991,6 +3026,11 @@
             }
             sheetForm.dataset.foodRedirectPending = "true";
             confirmButton.disabled = true;
+            const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(sheetForm, paymentUrl);
+            if (pendingRedirectUrl) {
+              window.location.href = pendingRedirectUrl;
+              return;
+            }
             await queueFoodSponsorshipPendingBooking(sheetForm, paymentUrl);
             window.location.href = paymentUrl;
             return;
@@ -3059,6 +3099,11 @@
               sheetForm.dataset.foodRedirectPending = "true";
               await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
               setTermsSubmitLoading(false);
+              const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(sheetForm, paymentUrl);
+              if (pendingRedirectUrl) {
+                window.location.href = pendingRedirectUrl;
+                return;
+              }
               window.location.href = paymentUrl;
               return;
             }
