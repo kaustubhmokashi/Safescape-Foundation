@@ -585,6 +585,7 @@ function upsertWebhookEvent_(payload) {
 
   var now = nowIso_();
   var previousPaymentStatus = String(getCellByHeader_(sheet, map, row, 'payment_status') || '').trim().toLowerCase();
+  var currentCalendarStatus = String(getCellByHeader_(sheet, map, row, 'calendar_status') || '').trim().toLowerCase();
   updateCellIfPresent_(sheet, map, row, 'updated_at', now);
   updateCellIfPresent_(sheet, map, row, 'last_webhook_at', now);
   updateCellIfPresent_(sheet, map, row, 'razorpay_event', eventName);
@@ -596,9 +597,10 @@ function upsertWebhookEvent_(payload) {
   if (eventName === 'payment.captured' || eventName === 'order.paid') {
     updateCellIfPresent_(sheet, map, row, 'payment_status', 'paid');
     updateCellIfPresent_(sheet, map, row, 'paid_at', now);
-    // Idempotency guard: block calendar only when payment transitions to paid.
-    // Razorpay may send both payment.captured and order.paid for the same payment.
-    if (previousPaymentStatus !== 'paid') {
+    // Retry-friendly idempotency:
+    // - avoid duplicate event creation when already blocked/processing
+    // - still allow retry on later success webhook if a previous block attempt failed
+    if (currentCalendarStatus !== 'blocked' && currentCalendarStatus !== 'processing') {
       blockCalendarForPaidRow_(sheet, map, row);
     }
   } else if (eventName === 'payment.failed') {

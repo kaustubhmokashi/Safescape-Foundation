@@ -1462,35 +1462,33 @@
       calendar_status: mode === "calendar" ? "not_started" : "",
       notes: mode === "calendar" ? "Pending booking created before calendar sponsorship payment redirect." : "Pending booking created before direct payment redirect."
     };
+    const iframeName = `food-pending-target-${Date.now()}`;
+    const iframe = document.createElement("iframe");
+    iframe.name = iframeName;
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
 
-    const formBody = new URLSearchParams(payload).toString();
+    const postForm = document.createElement("form");
+    postForm.method = "POST";
+    postForm.action = endpoint;
+    postForm.target = iframeName;
+    postForm.style.display = "none";
 
-    // sendBeacon is often more reliable for local/file:// origins and redirects.
-    if (navigator.sendBeacon) {
-      try {
-        const beaconOk = navigator.sendBeacon(
-          endpoint,
-          new Blob([formBody], { type: "application/x-www-form-urlencoded;charset=UTF-8" })
-        );
-        if (beaconOk) {
-          return;
-        }
-      } catch (error) {
-        // Fall back to fetch below.
-      }
-    }
-
-    await fetch(endpoint, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-      },
-      body: formBody,
-      keepalive: true
-    }).catch(() => {
-      // Best effort; payment flow should still continue.
+    Object.keys(payload).forEach((key) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = String(payload[key] == null ? "" : payload[key]);
+      postForm.appendChild(input);
     });
+
+    document.body.appendChild(postForm);
+    postForm.submit();
+
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+    postForm.remove();
+    iframe.remove();
   }
 
   function getFoodSponsorshipSelectedDates(formEl) {
