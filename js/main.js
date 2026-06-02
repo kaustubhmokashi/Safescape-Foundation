@@ -1481,6 +1481,9 @@
     const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(formEl, paymentUrl);
     const isDebugMode = new URLSearchParams(window.location.search).has("debugFoodPending");
     if (isDebugMode) {
+      setTermsSubmitLoading(false);
+      setTermsDialogState(pendingRedirectUrl ? "success" : "error", pendingRedirectUrl || "Pending URL could not be built.");
+      setDialogError("");
       const statusEl = formEl && formEl.querySelector("[data-form-status]");
       if (statusEl) {
         statusEl.textContent = `Pending URL: ${pendingRedirectUrl || "(not built)"}`;
