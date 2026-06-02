@@ -1492,85 +1492,6 @@
     window.location.assign(pendingRedirectUrl || paymentUrl);
   }
 
-  function handleFoodSponsorshipFinalSubmit(formEl, statusEl) {
-    const paymentUrl = resolveFoodSponsorshipPaymentUrl(formEl);
-    if (!paymentUrl) {
-      if (statusEl) {
-        statusEl.textContent = "Payment link is not configured yet.";
-        statusEl.classList.add("is-error");
-      }
-      return false;
-    }
-
-    if (statusEl) {
-      statusEl.textContent = "Awaiting payment confirmation. Redirecting to payment...";
-      statusEl.classList.remove("is-error", "is-success");
-    }
-
-    formEl.dataset.foodRedirectPending = "true";
-    submitFoodSponsorshipPendingAndRedirect(formEl, paymentUrl);
-    return true;
-  }
-
-  function bindFoodSponsorshipHardSubmitGuard() {
-    document.addEventListener(
-      "click",
-      (event) => {
-        const target = event.target;
-        if (!target || !(target instanceof Element)) {
-          return;
-        }
-
-        const foodForm = document.querySelector('form[data-sheet-form="foodSponsorship"]');
-        if (!foodForm || foodForm.dataset.foodRedirectPending === "true") {
-          return;
-        }
-
-        const statusEl = foodForm.querySelector("[data-form-status]");
-        const confirmButton = target.closest("#confirm-button");
-        if (confirmButton && getFoodSponsorshipVisibleMode(foodForm) === "days") {
-          const { ok: isValid, firstInvalid } = validateSheetForm(foodForm);
-          if (!isValid) {
-            if (firstInvalid && typeof firstInvalid.scrollIntoView === "function") {
-              firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
-            return;
-          }
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          handleFoodSponsorshipFinalSubmit(foodForm, statusEl);
-          return;
-        }
-
-        const termsSubmitButton = target.closest("#terms-submit");
-        if (!termsSubmitButton) {
-          return;
-        }
-
-        const termsDialog = document.getElementById("terms-dialog");
-        const agreeInput = document.getElementById("terms-agree");
-        if (!termsDialog || !termsDialog.open || !agreeInput || !agreeInput.checked) {
-          return;
-        }
-
-        const { ok: isValid, firstInvalid } = validateSheetForm(foodForm);
-        if (!isValid) {
-          if (firstInvalid && typeof firstInvalid.scrollIntoView === "function") {
-            firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-          return;
-        }
-
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.requestAnimationFrame(() => {
-          handleFoodSponsorshipFinalSubmit(foodForm, statusEl);
-        });
-      },
-      true
-    );
-  }
-
   async function queueFoodSponsorshipPendingBooking(formEl, paymentUrl) {
     const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
     if (!endpoint || !formEl) {
@@ -5215,7 +5136,6 @@
     activateForm(defaultFormType);
   }
   bindEvents();
-  bindFoodSponsorshipHardSubmitGuard();
   syncHeaderState();
   window.addEventListener("scroll", syncHeaderState, { passive: true });
   setupRevealSections();
