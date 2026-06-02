@@ -1472,11 +1472,45 @@
           ? "Pending booking created before calendar sponsorship payment redirect."
           : "Pending booking created before direct payment redirect."
       );
-      url.searchParams.set("redirect_to", paymentUrl);
       return url.toString();
     } catch (error) {
       return "";
     }
+  }
+
+  function loadFoodSponsorshipPendingUrl(pendingUrl) {
+    return new Promise((resolve) => {
+      if (!pendingUrl) {
+        resolve();
+        return;
+      }
+
+      let settled = false;
+      const done = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.setTimeout(() => {
+          iframe.remove();
+          resolve();
+        }, 250);
+      };
+
+      const iframe = document.createElement("iframe");
+      iframe.title = "Food sponsorship pending booking";
+      iframe.style.position = "absolute";
+      iframe.style.width = "1px";
+      iframe.style.height = "1px";
+      iframe.style.opacity = "0";
+      iframe.style.pointerEvents = "none";
+      iframe.style.border = "0";
+      iframe.style.left = "-9999px";
+      iframe.addEventListener("load", done, { once: true });
+      document.body.appendChild(iframe);
+      iframe.src = pendingUrl;
+      window.setTimeout(done, 2200);
+    });
   }
 
   function submitFoodSponsorshipPendingAndRedirect(formEl, paymentUrl) {
@@ -1498,7 +1532,15 @@
       }
       return;
     }
-    window.location.assign(pendingRedirectUrl || paymentUrl);
+
+    if (!pendingRedirectUrl) {
+      window.location.assign(paymentUrl);
+      return;
+    }
+
+    loadFoodSponsorshipPendingUrl(pendingRedirectUrl).finally(() => {
+      window.location.assign(paymentUrl);
+    });
   }
 
   async function queueFoodSponsorshipPendingBooking(formEl, paymentUrl) {
