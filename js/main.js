@@ -1438,6 +1438,10 @@
     return 0;
   }
 
+  function isFoodSponsorshipForm(formEl) {
+    return Boolean(formEl && formEl.dataset && formEl.dataset.sheetForm === "foodSponsorship");
+  }
+
   function buildFoodSponsorshipPendingRedirectUrl(formEl, paymentUrl) {
     const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
     if (!endpoint || !formEl || !paymentUrl) {
@@ -3016,7 +3020,7 @@
             statusEl.classList.remove("is-error", "is-success");
           }
 
-          if (activeFormType === "foodSponsorship" && getFoodSponsorshipVisibleMode(sheetForm) === "days") {
+          if (isFoodSponsorshipForm(sheetForm) && getFoodSponsorshipVisibleMode(sheetForm) === "days") {
             const paymentUrl = resolveFoodSponsorshipPaymentUrl(sheetForm);
             if (!paymentUrl) {
               if (statusEl) {
@@ -3081,7 +3085,7 @@
           }
 
           setTermsSubmitLoading(true);
-          if (activeFormType === "foodSponsorship") {
+          if (isFoodSponsorshipForm(sheetForm)) {
             const paymentUrl = resolveFoodSponsorshipPaymentUrl(sheetForm);
             if (!paymentUrl) {
               setTermsSubmitLoading(false);
@@ -3101,7 +3105,7 @@
           const result = await submitSheetForm(sheetForm, statusEl);
           if (result.ok) {
             const paymentUrl = String(result.paymentUrl || "").trim();
-            if (activeFormType === "foodSponsorship" && paymentUrl) {
+            if (isFoodSponsorshipForm(sheetForm) && paymentUrl) {
               setTermsDialogState("loading", "Redirecting to Payment");
               sheetForm.dataset.foodRedirectPending = "true";
               await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
