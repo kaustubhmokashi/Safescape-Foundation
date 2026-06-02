@@ -670,8 +670,13 @@ function doPost(e) {
     var payload = parseBody_(e);
     var action = String((e && e.parameter && e.parameter.action) || (payload && payload.action) || '').trim();
     var looksLikeWebhook = Boolean(payload && payload.event && payload.payload);
+    var looksLikePendingCreate = Boolean(
+      payload &&
+      String(payload.request_id || '').trim() &&
+      String(payload.flow_type || '').trim().toLowerCase() === 'food_sponsorship'
+    );
 
-    if (action === 'createPending') {
+    if (action === 'createPending' || (!action && looksLikePendingCreate)) {
       var result = appendPendingRow_(payload);
       var redirectToPost = String(payload.redirect_to || '').trim();
       if (redirectToPost) {
@@ -686,7 +691,7 @@ function doPost(e) {
       }
       return jsonResponse({
         ok: true,
-        action: action,
+        action: action || 'createPending:auto',
         request_id: result.request_id,
         row: result.row,
         duplicate: result.duplicate
