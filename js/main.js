@@ -29,6 +29,8 @@
   const adoptionTestFillTrigger = "0000";
   const foodCalendarSyncFallbackUrl =
     "https://script.google.com/macros/s/AKfycby4GeBE20UNjrquVn2NlhrKtN3cNUIliUPU8LO4XYp0RTV_BSvLFR4w8rD_9B5IH87O9A/exec";
+  const foodBookingsFallbackUrl =
+    "https://script.google.com/macros/s/AKfycby5xXUsDffuOf3_D3g9EypPC2OrLFCIslxmSZnR75mNLv5F51G_0XXe1ZNfMtmp44ku/exec";
 
   let activeFormType = "adoption";
   let pendingStatusTimer = null;
@@ -1384,7 +1386,7 @@
 
   function getFoodSponsorshipBookingsEndpoint(action) {
     const foodSponsorship = getFoodSponsorshipConfig();
-    const baseUrl = String(foodSponsorship.bookingsUrl || "").trim();
+    const baseUrl = String(foodSponsorship.bookingsUrl || foodBookingsFallbackUrl || "").trim();
     if (!baseUrl) {
       return "";
     }
@@ -1481,12 +1483,16 @@
     const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(formEl, paymentUrl);
     const isDebugMode = new URLSearchParams(window.location.search).has("debugFoodPending");
     if (isDebugMode) {
+      const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
+      const debugMessage =
+        pendingRedirectUrl ||
+        `Pending URL could not be built. endpoint=${endpoint || "(missing)"} form=${formEl ? "present" : "missing"} payment=${paymentUrl || "(missing)"}`;
       setTermsSubmitLoading(false);
-      setTermsDialogState(pendingRedirectUrl ? "success" : "error", pendingRedirectUrl || "Pending URL could not be built.");
+      setTermsDialogState(pendingRedirectUrl ? "success" : "error", debugMessage);
       setDialogError("");
       const statusEl = formEl && formEl.querySelector("[data-form-status]");
       if (statusEl) {
-        statusEl.textContent = `Pending URL: ${pendingRedirectUrl || "(not built)"}`;
+        statusEl.textContent = `Pending URL: ${debugMessage}`;
         statusEl.classList.remove("is-error");
         statusEl.classList.add(pendingRedirectUrl ? "is-success" : "is-error");
       }
