@@ -1489,7 +1489,7 @@
       }
       return;
     }
-    window.location.href = pendingRedirectUrl || paymentUrl;
+    window.location.assign(pendingRedirectUrl || paymentUrl);
   }
 
   function handleFoodSponsorshipFinalSubmit(formEl, statusEl) {
@@ -1563,9 +1563,9 @@
 
         event.preventDefault();
         event.stopImmediatePropagation();
-        setTermsDialogState("loading", "Awaiting payment confirmation. Redirecting to payment...");
-        setTermsSubmitLoading(false);
-        handleFoodSponsorshipFinalSubmit(foodForm, statusEl);
+        window.requestAnimationFrame(() => {
+          handleFoodSponsorshipFinalSubmit(foodForm, statusEl);
+        });
       },
       true
     );
