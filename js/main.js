@@ -1479,6 +1479,16 @@
 
   function submitFoodSponsorshipPendingAndRedirect(formEl, paymentUrl) {
     const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(formEl, paymentUrl);
+    const isDebugMode = new URLSearchParams(window.location.search).has("debugFoodPending");
+    if (isDebugMode) {
+      const statusEl = formEl && formEl.querySelector("[data-form-status]");
+      if (statusEl) {
+        statusEl.textContent = `Pending URL: ${pendingRedirectUrl || "(not built)"}`;
+        statusEl.classList.remove("is-error");
+        statusEl.classList.add(pendingRedirectUrl ? "is-success" : "is-error");
+      }
+      return;
+    }
     window.location.href = pendingRedirectUrl || paymentUrl;
   }
 
