@@ -461,6 +461,39 @@
     }
   }
 
+  function getFoodSponsorshipBlockedDateReadUrls() {
+    const foodConfig = getFoodSponsorshipConfig();
+    const candidates = [
+      foodConfig.blockedDatesReadUrl,
+      foodConfig.blockedDatesUrl,
+      foodCalendarSyncFallbackUrl
+    ];
+    const urls = [];
+
+    candidates.forEach((candidate) => {
+      const baseUrl = String(candidate || "").trim();
+      if (!baseUrl) {
+        return;
+      }
+      try {
+        const url = new URL(baseUrl, window.location.href);
+        url.searchParams.set("action", "foodCalendarDates");
+        const normalized = url.toString();
+        if (!urls.includes(normalized)) {
+          urls.push(normalized);
+        }
+      } catch (error) {
+        const separator = baseUrl.includes("?") ? "&" : "?";
+        const normalized = `${baseUrl}${separator}action=foodCalendarDates`;
+        if (!urls.includes(normalized)) {
+          urls.push(normalized);
+        }
+      }
+    });
+
+    return urls;
+  }
+
   function normalizeDateKey(value) {
     if (!value) {
       return "";
@@ -519,16 +552,22 @@
   }
 
   async function loadFoodSponsorshipBlockedDatesJsonp(url) {
-    const response = await fetch(url, {
-      cache: "no-store",
-      credentials: "omit"
-    });
+    let text = "";
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        credentials: "omit"
+      });
 
-    if (!response.ok) {
-      throw new Error(`Blocked dates request failed (${response.status}).`);
+      if (!response.ok) {
+        throw new Error(`Blocked dates request failed (${response.status}).`);
+      }
+
+      text = await response.text();
+    } catch (error) {
+      return loadFoodSponsorshipBlockedDatesScript(url);
     }
 
-    const text = await response.text();
     const trimmed = String(text || "").trim();
     if (!trimmed) {
       throw new Error("Blocked dates response was empty.");
@@ -545,17 +584,75 @@
     }
   }
 
-  async function loadFoodSponsorshipBlockedDatesWithRetry(url, attempts) {
+  function loadFoodSponsorshipBlockedDatesScript(url) {
+    return new Promise((resolve, reject) => {
+      if (!url) {
+        reject(new Error("Blocked dates URL is missing."));
+        return;
+      }
+
+      const callbackName = `safescapeFoodCalendar_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      let script = null;
+      let timeoutId = null;
+
+      const cleanup = () => {
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        try {
+          delete window[callbackName];
+        } catch (error) {
+          window[callbackName] = undefined;
+        }
+      };
+
+      window[callbackName] = (payload) => {
+        cleanup();
+        resolve(payload);
+      };
+
+      try {
+        const jsonpUrl = new URL(url, window.location.href);
+        jsonpUrl.searchParams.set("callback", callbackName);
+        jsonpUrl.searchParams.set("_", String(Date.now()));
+        script = document.createElement("script");
+        script.async = true;
+        script.src = jsonpUrl.toString();
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Blocked dates JSONP request failed."));
+        };
+        timeoutId = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("Blocked dates JSONP request timed out."));
+        }, 8000);
+        document.head.appendChild(script);
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    });
+  }
+
+  async function loadFoodSponsorshipBlockedDatesWithRetry(urls, attempts) {
+    const urlList = Array.isArray(urls) ? urls : [urls];
     const maxAttempts = Math.max(1, Number(attempts) || 1);
     let lastError = null;
 
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      try {
-        return await loadFoodSponsorshipBlockedDatesJsonp(url);
-      } catch (error) {
-        lastError = error;
-        if (attempt < maxAttempts - 1) {
-          await new Promise((resolve) => window.setTimeout(resolve, 500));
+    for (let urlIndex = 0; urlIndex < urlList.length; urlIndex += 1) {
+      const url = urlList[urlIndex];
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          return await loadFoodSponsorshipBlockedDatesJsonp(url);
+        } catch (error) {
+          lastError = error;
+          if (attempt < maxAttempts - 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 500));
+          }
         }
       }
     }
@@ -567,7 +664,7 @@
     const state = getFoodSponsorshipState(formEl);
     const foodConfig = getFoodSponsorshipConfig();
     const blockedDates = getFoodSponsorshipBlockedDatesFromConfig();
-    const blockedDatesUrl = buildFoodSponsorshipEndpoint("foodCalendarDates");
+    const blockedDatesUrls = getFoodSponsorshipBlockedDateReadUrls();
 
     clearFoodSponsorshipBlockedDatesCache();
 
@@ -579,8 +676,8 @@
     }
 
     try {
-      if (blockedDatesUrl) {
-        const payload = await loadFoodSponsorshipBlockedDatesWithRetry(blockedDatesUrl, 3);
+      if (blockedDatesUrls.length) {
+        const payload = await loadFoodSponsorshipBlockedDatesWithRetry(blockedDatesUrls, 2);
         const list = Array.isArray(payload)
           ? payload
           : Array.isArray(payload && payload.data)
@@ -607,10 +704,10 @@
       }
       if (state.calendarError) {
         state.calendarError.hidden = false;
-        state.calendarError.textContent = blockedDatesUrl && blockedDates.size === 0
+        state.calendarError.textContent = blockedDatesUrls.length && blockedDates.size === 0
           ? "Blocked dates could not be loaded right now. Please refresh after the calendar sync app is redeployed."
           : "";
-        if (!blockedDatesUrl || blockedDates.size > 0) {
+        if (!blockedDatesUrls.length || blockedDates.size > 0) {
           state.calendarError.hidden = true;
         }
       }
