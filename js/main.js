@@ -1610,16 +1610,20 @@
     });
   }
 
-  function submitFoodSponsorshipPendingAndRedirect(formEl, paymentUrl) {
+  async function submitFoodSponsorshipPendingAndRedirect(formEl, paymentUrl) {
     const pendingRedirectUrl = buildFoodSponsorshipPendingRedirectUrl(formEl, paymentUrl);
     const isDebugMode = new URLSearchParams(window.location.search).has("debugFoodPending");
     if (isDebugMode) {
       const endpoint = getFoodSponsorshipBookingsEndpoint("createPending");
+      const selectedDates = getFoodSponsorshipSelectedDates(formEl);
       const debugMessage =
         pendingRedirectUrl ||
         `Pending URL could not be built. endpoint=${endpoint || "(missing)"} form=${formEl ? "present" : "missing"} payment=${paymentUrl || "(missing)"}`;
       setTermsSubmitLoading(false);
-      setTermsDialogState(pendingRedirectUrl ? "success" : "error", debugMessage);
+      setTermsDialogState(
+        pendingRedirectUrl ? "success" : "error",
+        `Selected dates: ${selectedDates.length ? selectedDates.join(", ") : "(none)"}\n${debugMessage}`
+      );
       setDialogError("");
       const statusEl = formEl && formEl.querySelector("[data-form-status]");
       if (statusEl) {
@@ -1634,6 +1638,10 @@
       window.location.assign(paymentUrl);
       return;
     }
+
+    await queueFoodSponsorshipPendingBooking(formEl, paymentUrl).catch(() => {
+      // The GET iframe below is a second chance before payment redirection.
+    });
 
     loadFoodSponsorshipPendingUrl(pendingRedirectUrl).finally(() => {
       window.location.assign(paymentUrl);

@@ -14,6 +14,7 @@ window.SAFESCAPE_CONFIG = {
     errorMessage: "We couldn’t load passive adoption stories right now. Please refresh in a moment."
   },
   foodSponsorship: {
+    bookingsUrl: "https://script.google.com/macros/s/AKfycby5xXUsDffuOf3_D3g9EypPC2OrLFCIslxmSZnR75mNLv5F51G_0XXe1ZNfMtmp44ku/exec",
     calendarId: "d66e0b3e3cf10931b4693cec161cfb49a48066ace2352e76cd470e127ce7fe9a@group.calendar.google.com",
     blockedDatesUrl: "https://script.google.com/macros/s/AKfycby4GeBE20UNjrquVn2NlhrKtN3cNUIliUPU8LO4XYp0RTV_BSvLFR4w8rD_9B5IH87O9A/exec",
     blockedDatesReadUrl:
